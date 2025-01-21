@@ -1,5 +1,7 @@
-use donedone::hello;
+use clap::Parser;
+use donedone::{args::Args, hello};
 
 fn main() {
-    hello();
+    let args = Args::parse();
+    dbg!(args);
 }
