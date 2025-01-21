@@ -1,5 +1,3 @@
 pub mod args;
+pub mod entry;
 pub mod file;
-pub fn hello() {
-    println!("hello!");
-}

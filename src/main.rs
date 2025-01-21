@@ -1,7 +1,11 @@
-use std::env::current_dir;
+use std::{env::current_dir, path::PathBuf};
 
 use clap::Parser;
-use donedone::args::Args;
+use donedone::{
+    args::Args,
+    entry::Entry,
+    file::{add_entry, get_entries},
+};
 
 fn main() {
     let mut args = Args::parse();
@@ -13,5 +17,12 @@ fn main() {
         args.file_path = Some(path);
     }
 
-    dbg!(args);
+    let entry = Entry {
+        path: PathBuf::from("./"),
+        line: 3,
+        comment: Some("Testing 123".to_string()),
+    };
+
+    let entries = get_entries(&args.file_path.unwrap());
+    dbg!(entries);
 }
