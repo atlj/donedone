@@ -1,12 +1,15 @@
-use std::path::PathBuf;
+use std::{env::current_dir, path::PathBuf};
 
 use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
 #[command(version, about)]
 pub struct Args {
+    /// Defaults to `./dndn`
+    #[arg(short, long, value_name = "destination")]
+    pub file_path: Option<PathBuf>,
     #[command(subcommand)]
-    commands: Option<Commands>,
+    pub commands: Option<Commands>,
 }
 
 #[derive(Subcommand, Debug)]
