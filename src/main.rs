@@ -5,6 +5,7 @@ use donedone::{
     args::{Args, Commands},
     entry::Entry,
     file::{add_entry, get_entries},
+    setup::setup,
 };
 
 fn main() {
@@ -42,7 +43,7 @@ fn main() {
             add_entry(&args.file_path.unwrap(), &entry);
         }
         Some(Commands::Setup {}) => {
-            // TODO: Go to gitignore and ignore
+            setup();
         }
     }
 }
