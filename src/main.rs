@@ -6,6 +6,7 @@ use donedone::{
     entry::Entry,
     file::{add_entry, get_entries},
     setup::setup,
+    ui::display_entries,
 };
 
 fn main() {
@@ -20,14 +21,8 @@ fn main() {
 
     match args.command {
         None => {
-            let entry = Entry {
-                path: PathBuf::from("./"),
-                line: 3,
-                comment: Some("Testing 123".to_string()),
-            };
-
-            let entries = get_entries(&args.file_path.unwrap());
-            dbg!(entries);
+            let entries = get_entries(&args.file_path.unwrap()).expect("No Entries");
+            display_entries(&entries);
         }
         Some(Commands::Add {
             file_path,
