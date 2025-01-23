@@ -9,7 +9,7 @@ pub struct Args {
     #[arg(short, long, value_name = "destination")]
     pub file_path: Option<PathBuf>,
     #[command(subcommand)]
-    pub commands: Option<Commands>,
+    pub command: Option<Commands>,
 }
 
 #[derive(Subcommand, Debug)]
@@ -20,6 +20,8 @@ pub enum Commands {
         file_path: PathBuf,
         /// Which line to add the todo to
         line: usize,
+        /// Comment for the entry
+        comment: Option<String>,
     },
     /// Sets up dndn in a way to not affect git
     Setup {},
