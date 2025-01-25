@@ -15,7 +15,7 @@ use crossterm::{
 
 use crate::{
     entry::Entry,
-    file::{get_entries, remove_entry},
+    file::{get_entries, remove_entry, swap_entries},
 };
 
 pub fn display_entries(path: &PathBuf) -> Result<(), io::Error> {
@@ -30,12 +30,12 @@ pub fn display_entries(path: &PathBuf) -> Result<(), io::Error> {
 
     let mut selected_entry_index = 0;
 
-    render(&mut stdout, &entries, &selected_entry_index);
+    render(&mut stdout, &entries, &selected_entry_index)?;
 
     loop {
         match crossterm::event::read()? {
             Event::Resize(y, x) => {
-                render(&mut stdout, &entries, &selected_entry_index);
+                render(&mut stdout, &entries, &selected_entry_index)?;
             }
             Event::Key(key_event) => match key_event.code {
                 KeyCode::Char('c') => {
@@ -61,6 +61,22 @@ pub fn display_entries(path: &PathBuf) -> Result<(), io::Error> {
                         render(&mut stdout, &entries, &selected_entry_index)?;
                     }
                 }
+                KeyCode::Char('h') => {
+                    if selected_entry_index > 0 {
+                        swap_entries(path, &selected_entry_index, &(selected_entry_index - 1))?;
+                        selected_entry_index -= 1;
+                        entries = get_entries(path).expect("No Entries");
+                        render(&mut stdout, &entries, &selected_entry_index)?;
+                    }
+                }
+                KeyCode::Char('l') => {
+                    if selected_entry_index < entries.len() {
+                        swap_entries(path, &selected_entry_index, &(selected_entry_index + 1))?;
+                        selected_entry_index += 1;
+                        entries = get_entries(path).expect("No Entries");
+                        render(&mut stdout, &entries, &selected_entry_index)?;
+                    }
+                }
                 KeyCode::Char('d') => {
                     if matches!(
                         crossterm::event::read()?,
@@ -69,7 +85,7 @@ pub fn display_entries(path: &PathBuf) -> Result<(), io::Error> {
                             ..
                         })
                     ) {
-                        remove_entry(path, &selected_entry_index);
+                        remove_entry(path, &selected_entry_index)?;
                         entries = get_entries(path).expect("No Entries");
                         render(&mut stdout, &entries, &selected_entry_index)?;
                     }

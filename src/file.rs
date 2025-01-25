@@ -50,11 +50,33 @@ pub fn remove_entry(path: &PathBuf, index_to_remove: &usize) -> Result<(), Error
         .collect::<Vec<_>>()
         .join("\n\n");
 
-    let entries = dbg!(entries);
-
     file.set_len(0)?;
     file.rewind()?;
     file.write(entries.as_bytes())?;
+    file.flush()?;
+
+    return Ok(());
+}
+
+pub fn swap_entries(path: &PathBuf, index_a: &usize, index_b: &usize) -> Result<(), Error> {
+    let mut file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .append(false)
+        .open(path)?;
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)?;
+
+    let contents = dbg!(contents);
+
+    let mut entries = contents.split("\n\n").collect::<Vec<_>>();
+
+    entries.swap(*index_a, *index_b);
+    let result = entries.join("\n\n");
+
+    file.set_len(0)?;
+    file.rewind()?;
+    file.write(result.as_bytes())?;
     file.flush()?;
 
     return Ok(());
