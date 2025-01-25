@@ -1,13 +1,17 @@
 use std::{
+    env::current_dir,
+    fs::read_to_string,
     io::{self, stdout, Stdout, Write},
+    os::unix::fs::FileExt,
     path::PathBuf,
     usize,
 };
 
+use clap::builder::StyledStr;
 use crossterm::{
     cursor,
     event::{Event, KeyCode, KeyEvent, KeyModifiers},
-    style::{self},
+    style::{self, StyledContent, Stylize},
     terminal::{self, disable_raw_mode},
     ExecutableCommand, QueueableCommand,
 };
@@ -106,26 +110,59 @@ fn render(
     selected_entry_index: &usize,
 ) -> Result<(), io::Error> {
     let (x_size, y_size) = terminal::size()?;
-    let comments = entries
-        .iter()
-        .map(|entry| entry.comment.clone().unwrap_or("".to_string()));
-    let count = comments.clone().count();
+    let count = entries.len();
     stdout.queue(terminal::Clear(terminal::ClearType::All))?;
 
-    for (index, comment) in comments.enumerate() {
-        if index == *selected_entry_index {
-            stdout.queue(style::SetForegroundColor(style::Color::Green))?;
+    for (entry_index, entry) in entries.into_iter().enumerate() {
+        for (index, ui_content) in entry.get_ui_contents().into_iter().enumerate() {
+            if entry_index == *selected_entry_index {
+                stdout.queue(style::SetForegroundColor(style::Color::Magenta))?;
+            }
+            stdout
+                .queue(cursor::MoveToRow(
+                    ((y_size - (count * 4) as u16) / 2) + ((entry_index * 4) + index) as u16,
+                ))?
+                .queue(cursor::MoveToColumn(4))?
+                .queue(style::Print(ui_content))?;
         }
-        stdout
-            .queue(cursor::MoveToRow(
-                ((y_size - (count) as u16) / 2) + index as u16,
-            ))?
-            .queue(cursor::MoveToColumn((x_size - (comment.len() as u16)) / 2))?
-            .queue(style::Print(comment))?
-            .queue(style::ResetColor)?;
+
+        stdout.queue(style::ResetColor)?;
     }
 
     stdout.flush()?;
 
     Ok(())
+}
+
+impl Entry {
+    fn get_ui_contents(&self) -> Vec<StyledContent<String>> {
+        let mut result = Vec::new();
+
+        if let Some(comment) = self.comment.clone() {
+            result.push(comment.bold());
+        }
+
+        let current_dir = current_dir().unwrap();
+        let relative_dir = self
+            .path
+            .strip_prefix(current_dir)
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string();
+
+        result.push(
+            format!("{}:{}", relative_dir, self.line)
+                .to_string()
+                .underlined(),
+        );
+
+        if let Ok(file) = read_to_string(self.path.clone()) {
+            if let Some(line) = file.lines().nth(self.line) {
+                result.push(line.trim().to_string().italic().dark_grey())
+            }
+        }
+
+        return result;
+    }
 }
