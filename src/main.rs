@@ -4,7 +4,7 @@ use clap::Parser;
 use donedone::{
     args::{Args, Commands},
     entry::Entry,
-    file::{add_entry, get_entries},
+    file::{add_entry, get_entries, remove_entry},
     setup::setup,
     ui::display_entries,
 };
@@ -39,6 +39,9 @@ fn main() {
         }
         Some(Commands::Setup {}) => {
             setup();
+        }
+        Some(Commands::Remove { index }) => {
+            remove_entry(&args.file_path.unwrap(), &index).unwrap();
         }
     }
 }

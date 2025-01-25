@@ -25,4 +25,7 @@ pub enum Commands {
     },
     /// Sets up dndn in a way to not affect git
     Setup {},
+    Remove {
+        index: usize,
+    },
 }
