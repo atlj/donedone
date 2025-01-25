@@ -9,8 +9,8 @@ use crossterm::{
     cursor,
     event::{Event, KeyCode, KeyEvent, KeyModifiers},
     style::{self, Print, PrintStyledContent},
-    terminal::{self, enable_raw_mode},
-    QueueableCommand,
+    terminal::{self, disable_raw_mode, enable_raw_mode},
+    ExecutableCommand, QueueableCommand,
 };
 
 use crate::{
@@ -40,8 +40,14 @@ pub fn display_entries(path: &PathBuf) -> Result<(), io::Error> {
             Event::Key(key_event) => match key_event.code {
                 KeyCode::Char('c') => {
                     if key_event.modifiers == KeyModifiers::CONTROL {
-                        exit(0);
+                        break;
                     }
+                }
+                KeyCode::Char('q') => {
+                    break;
+                }
+                KeyCode::Esc => {
+                    break;
                 }
                 KeyCode::Char('j') => {
                     if selected_entry_index < entries.len() {
@@ -74,6 +80,8 @@ pub fn display_entries(path: &PathBuf) -> Result<(), io::Error> {
         }
     }
 
+    disable_raw_mode()?;
+    stdout.execute(terminal::LeaveAlternateScreen)?;
     return Ok(());
 }
 
@@ -99,10 +107,10 @@ fn render(
             ))?
             .queue(cursor::MoveToColumn((x_size - (comment.len() as u16)) / 2))?
             .queue(style::Print(comment))?
-            .queue(style::ResetColor);
+            .queue(style::ResetColor)?;
     }
 
-    stdout.flush();
+    stdout.flush()?;
 
     return Ok(());
 }
