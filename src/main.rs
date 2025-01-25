@@ -21,8 +21,7 @@ fn main() {
 
     match args.command {
         None => {
-            let entries = get_entries(&args.file_path.unwrap()).expect("No Entries");
-            display_entries(&entries);
+            display_entries(&args.file_path.unwrap());
         }
         Some(Commands::Add {
             file_path,
