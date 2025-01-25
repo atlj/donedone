@@ -1,15 +1,14 @@
 use std::{
     io::{self, stdout, Stdout, Write},
     path::PathBuf,
-    process::exit,
     usize,
 };
 
 use crossterm::{
     cursor,
     event::{Event, KeyCode, KeyEvent, KeyModifiers},
-    style::{self, Print, PrintStyledContent},
-    terminal::{self, disable_raw_mode, enable_raw_mode},
+    style::{self},
+    terminal::{self, disable_raw_mode},
     ExecutableCommand, QueueableCommand,
 };
 
@@ -98,7 +97,7 @@ pub fn display_entries(path: &PathBuf) -> Result<(), io::Error> {
 
     disable_raw_mode()?;
     stdout.execute(terminal::LeaveAlternateScreen)?;
-    return Ok(());
+    Ok(())
 }
 
 fn render(
@@ -108,7 +107,7 @@ fn render(
 ) -> Result<(), io::Error> {
     let (x_size, y_size) = terminal::size()?;
     let comments = entries
-        .into_iter()
+        .iter()
         .map(|entry| entry.comment.clone().unwrap_or("".to_string()));
     let count = comments.clone().count();
     stdout.queue(terminal::Clear(terminal::ClearType::All))?;
@@ -128,5 +127,5 @@ fn render(
 
     stdout.flush()?;
 
-    return Ok(());
+    Ok(())
 }

@@ -1,10 +1,10 @@
-use std::{env::current_dir, path::PathBuf};
+use std::env::current_dir;
 
 use clap::Parser;
 use donedone::{
     args::{Args, Commands},
     entry::Entry,
-    file::{add_entry, get_entries, remove_entry},
+    file::{add_entry, remove_entry},
     setup::setup,
     ui::display_entries,
 };

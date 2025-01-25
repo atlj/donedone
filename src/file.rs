@@ -16,14 +16,14 @@ pub fn get_entries(path: &PathBuf) -> Option<Vec<Entry>> {
         }
     }
 
-    return Some(entries);
+    Some(entries)
 }
 
 pub fn add_entry(path: &PathBuf, entry: &Entry) -> Result<(), Error> {
     let mut file = OpenOptions::new().create(true).append(true).open(path)?;
     let serialized = entry.serialize();
     file.write(&serialized.into_bytes())?;
-    return Ok(());
+    Ok(())
 }
 
 pub fn remove_entry(path: &PathBuf, index_to_remove: &usize) -> Result<(), Error> {
@@ -55,7 +55,7 @@ pub fn remove_entry(path: &PathBuf, index_to_remove: &usize) -> Result<(), Error
     file.write(entries.as_bytes())?;
     file.flush()?;
 
-    return Ok(());
+    Ok(())
 }
 
 pub fn swap_entries(path: &PathBuf, index_a: &usize, index_b: &usize) -> Result<(), Error> {
@@ -79,5 +79,5 @@ pub fn swap_entries(path: &PathBuf, index_a: &usize, index_b: &usize) -> Result<
     file.write(result.as_bytes())?;
     file.flush()?;
 
-    return Ok(());
+    Ok(())
 }
