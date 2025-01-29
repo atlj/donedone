@@ -8,6 +8,15 @@ local function add_entry(comment)
   local file_path = vim.api.nvim_buf_get_name(buffer)
   local line = vim.fn.line(".")
 
+  -- No actual file is open
+  if file_path == "" then
+    vim.notify(
+      "donedone: You should open a file to add an entry",
+      vim.log.levels.WARN
+    )
+    return
+  end
+
   vim.system(
     {
       "dndn",
