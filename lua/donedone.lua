@@ -1,10 +1,12 @@
+local log = require('log')
+
 local donedone = {}
 
 ---@param comment string
 local function add_entry(comment)
   local buffer = vim.api.nvim_get_current_buf()
   local file_path = vim.api.nvim_buf_get_name(buffer)
-  local line = vim.api.nvim_get_current_line()
+  local line = vim.fn.line(".")
 
   vim.system(
     {
