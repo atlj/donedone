@@ -1,2 +1,2 @@
 procs:
-  watch: cargo watch -x run
+  build: cargo watch -x build
