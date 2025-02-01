@@ -158,7 +158,7 @@ impl Entry {
         );
 
         if let Ok(file) = read_to_string(self.path.clone()) {
-            if let Some(line) = file.lines().nth(self.line) {
+            if let Some(line) = file.lines().nth(self.line - 1) {
                 result.push(line.trim().to_string().italic().dark_grey())
             }
         }
