@@ -123,7 +123,7 @@ fn render(
         ),
     );
 
-    let render_items = &entries[render_start_index..render_start_index + count];
+    let render_items = &entries[render_start_index..=render_start_index + count];
 
     stdout.queue(terminal::Clear(terminal::ClearType::All))?;
 
