@@ -5,7 +5,7 @@ use donedone::{
     args::{Args, Commands},
     entry::Entry,
     file::{add_entry, remove_entry},
-    setup::setup,
+    init::init,
     ui::display_entries,
 };
 
@@ -36,8 +36,8 @@ fn main() {
 
             add_entry(&args.file_path.unwrap(), &entry);
         }
-        Some(Commands::Setup {}) => {
-            setup();
+        Some(Commands::Init {}) => {
+            init();
         }
         Some(Commands::Remove { index }) => {
             remove_entry(&args.file_path.unwrap(), &index).unwrap();

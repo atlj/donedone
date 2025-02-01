@@ -5,7 +5,7 @@ use std::{
     process::exit,
 };
 
-pub fn setup() {
+pub fn init() {
     let dir = current_dir().expect("No dir?");
     let dot_git_path = dir.join(".git");
 

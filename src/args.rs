@@ -24,7 +24,7 @@ pub enum Commands {
         comment: Option<String>,
     },
     /// Sets up dndn in a way to not affect git
-    Setup {},
+    Init {},
     Remove {
         index: usize,
     },
