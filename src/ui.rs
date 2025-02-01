@@ -1,4 +1,5 @@
 use std::{
+    cmp::{max, min},
     env::current_dir,
     fs::read_to_string,
     io::{self, stdout, Stdout, Write},
@@ -110,12 +111,25 @@ fn render(
     selected_entry_index: &usize,
 ) -> Result<(), io::Error> {
     let (x_size, y_size) = terminal::size()?;
-    let count = entries.len();
+    let max_entries = (y_size as f32 / 4.0).trunc() as usize;
+
+    let render_start_index = (((*selected_entry_index) as f32 / max_entries as f32).floor()
+        * max_entries as f32) as usize;
+    let count = min(
+        entries.len(),
+        min(
+            (entries.len() as i64 - (render_start_index + 1) as i64).abs() as usize,
+            max_entries,
+        ),
+    );
+
+    let render_items = &entries[render_start_index..render_start_index + count];
+
     stdout.queue(terminal::Clear(terminal::ClearType::All))?;
 
-    for (entry_index, entry) in entries.into_iter().enumerate() {
+    for (entry_index, entry) in render_items.into_iter().enumerate() {
         for (index, ui_content) in entry.get_ui_contents().into_iter().enumerate() {
-            if entry_index == *selected_entry_index {
+            if (render_start_index + entry_index) == *selected_entry_index {
                 stdout.queue(style::SetForegroundColor(style::Color::Magenta))?;
             }
             stdout
