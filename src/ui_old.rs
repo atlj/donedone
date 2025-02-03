@@ -105,6 +105,24 @@ pub fn display_entries(path: &PathBuf) -> Result<(), io::Error> {
     Ok(())
 }
 
+struct UIState {
+    entries: Vec<Entry>,
+    selected_entry_index: usize,
+    top_index: usize,
+    y_size: u16,
+    x_size: u16,
+}
+
+enum UIMessage {
+    MoveDown,
+    MoveUp,
+    NextPage,
+    PreviousPage,
+    DeleteSelectedEntry,
+    SyncEntries { entries: Vec<Entry> },
+    Resize { y_size: u16, x_size: u16 },
+}
+
 fn render(
     stdout: &mut Stdout,
     entries: &Vec<Entry>,

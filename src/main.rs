@@ -6,7 +6,7 @@ use donedone::{
     entry::Entry,
     file::{add_entry, remove_entry},
     init::init,
-    ui::display_entries,
+    ui::start_gui_mode,
 };
 
 fn main() {
@@ -21,7 +21,7 @@ fn main() {
 
     match args.command {
         None => {
-            display_entries(&args.file_path.unwrap());
+            start_gui_mode(&args.file_path.unwrap());
         }
         Some(Commands::Add {
             file_path,
