@@ -1,6 +1,6 @@
 use std::{fmt::Display, path::PathBuf, usize};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Entry {
     pub path: PathBuf,
     pub line: usize,

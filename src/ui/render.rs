@@ -2,6 +2,7 @@ use std::{
     env::current_dir,
     fs::read_to_string,
     io::{stdout, Error, Stdout, Write},
+    path::PathBuf,
     sync::mpsc::Receiver,
 };
 
@@ -10,7 +11,10 @@ use crossterm::{
     ExecutableCommand, QueueableCommand,
 };
 
-use crate::entry::Entry;
+use crate::{
+    entry::Entry,
+    file::{get_entries, remove_entry},
+};
 
 pub struct UIState {
     pub entries: Vec<Entry>,
@@ -106,7 +110,7 @@ impl UIState {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum UIMessage {
     Exit,
     MoveDown,
@@ -120,7 +124,11 @@ pub enum UIMessage {
     Resize { y_size: u16, x_size: u16 },
 }
 
-pub fn render_loop(mut render_state: UIState, receiver: Receiver<UIMessage>) -> Result<(), Error> {
+pub fn render_loop(
+    entry_path: &PathBuf,
+    mut render_state: UIState,
+    receiver: Receiver<UIMessage>,
+) -> Result<(), Error> {
     let mut stdout = stdout();
 
     stdout
@@ -145,12 +153,30 @@ pub fn render_loop(mut render_state: UIState, receiver: Receiver<UIMessage>) -> 
                     render_state.complete_render(&mut stdout)?;
                 }
             }
+            UIMessage::DeleteSelectedEntry => {
+                if matches!(
+                    render_state.previous_command,
+                    Some(UIMessage::DeleteSelectedEntry)
+                ) {
+                    remove_entry(entry_path, &render_state.selected_entry_index)?;
+                    if let Some(entries) = get_entries(entry_path) {
+                        render_state.entries = entries;
+
+                        if render_state.selected_entry_index > 0 {
+                            render_state.selected_entry_index -= 1;
+                        }
+                    }
+                    render_state.complete_render(&mut stdout)?;
+                }
+            }
             UIMessage::Exit => {
                 stdout.execute(crossterm::terminal::LeaveAlternateScreen);
                 return Ok(());
             }
             _ => {}
         }
+
+        render_state.previous_command = Some(message.clone());
     }
 
     stdout.execute(crossterm::terminal::LeaveAlternateScreen);

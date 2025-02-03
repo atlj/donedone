@@ -35,8 +35,6 @@ pub fn remove_entry(path: &PathBuf, index_to_remove: &usize) -> Result<(), Error
     let mut contents = String::new();
     file.read_to_string(&mut contents)?;
 
-    let contents = dbg!(contents);
-
     let entries = contents
         .split("\n\n")
         .enumerate()
@@ -66,8 +64,6 @@ pub fn swap_entries(path: &PathBuf, index_a: &usize, index_b: &usize) -> Result<
         .open(path)?;
     let mut contents = String::new();
     file.read_to_string(&mut contents)?;
-
-    let contents = dbg!(contents);
 
     let mut entries = contents.split("\n\n").collect::<Vec<_>>();
 

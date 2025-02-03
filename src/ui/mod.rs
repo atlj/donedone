@@ -22,7 +22,9 @@ pub fn start_gui_mode(entry_path: &PathBuf) -> Result<(), Error> {
 
     let (sender, receiver) = channel::<UIMessage>();
 
-    spawn(move || render_loop(initial_state, receiver));
+    let path_clone = entry_path.clone();
+
+    spawn(move || render_loop(&path_clone, initial_state, receiver));
 
     crossterm::terminal::enable_raw_mode()?;
 
