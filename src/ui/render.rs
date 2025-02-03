@@ -29,7 +29,7 @@ type Renderable = Vec<StyledContent<String>>;
 
 impl UIState {
     fn complete_render(&self, stdout: &mut Stdout) -> Result<(), Error> {
-        let renderables = self.render_entries(self.y_size, self.x_size);
+        let renderables = self.render_entries(self.y_size, self.x_size - 10);
 
         stdout.queue(crossterm::terminal::Clear(
             crossterm::terminal::ClearType::All,
@@ -39,7 +39,7 @@ impl UIState {
             assert!(y <= self.y_size.into(), "Trying to print outside of screen");
 
             stdout
-                .queue(crossterm::cursor::MoveToColumn(0))?
+                .queue(crossterm::cursor::MoveToColumn(5))?
                 .queue(crossterm::cursor::MoveToRow(y as u16))?
                 .queue(crossterm::style::Print(contents))?;
         }
@@ -170,7 +170,7 @@ pub fn render_loop(
                 }
             }
             UIMessage::Exit => {
-                stdout.execute(crossterm::terminal::LeaveAlternateScreen);
+                stdout.execute(crossterm::terminal::LeaveAlternateScreen)?;
                 return Ok(());
             }
             _ => {}
@@ -179,6 +179,6 @@ pub fn render_loop(
         render_state.previous_command = Some(message.clone());
     }
 
-    stdout.execute(crossterm::terminal::LeaveAlternateScreen);
+    stdout.execute(crossterm::terminal::LeaveAlternateScreen)?;
     panic!("Sender channel closed unexpectedly");
 }
