@@ -19,8 +19,8 @@ use crate::{
 pub struct UIState {
     entries: Vec<Entry>,
     selected_entry_index: usize,
-    top_index: Option<usize>,
-    bottom_index: Option<usize>,
+    top_index: usize,
+    bottom_index: usize,
     y_size: u16,
     x_size: u16,
     previous_command: Option<UIMessage>,
@@ -33,14 +33,14 @@ impl UIState {
         Self {
             entries,
             selected_entry_index: 0,
-            top_index: None,
-            bottom_index: None,
+            top_index: 0,
+            bottom_index: 0,
             y_size,
             x_size,
             previous_command: None,
         }
     }
-    fn complete_render(&self, stdout: &mut Stdout) -> Result<(), Error> {
+    fn complete_render(&mut self, stdout: &mut Stdout) -> Result<(), Error> {
         let renderables = self.render_entries(self.y_size, self.x_size - 10);
 
         stdout.queue(crossterm::terminal::Clear(
@@ -61,22 +61,38 @@ impl UIState {
         Ok(())
     }
 
-    fn render_entries(&self, y_size: u16, x_size: u16) -> Renderable {
-        let top_index = self.top_index.unwrap_or(0);
+    fn render_entries(&mut self, y_size: u16, x_size: u16) -> Renderable {
+        let mut result: Renderable = vec![];
 
-        self.entries
-            .iter()
-            .enumerate()
-            .flat_map(|(index, entry)| {
-                let mut content =
-                    Self::render_entry(entry, index == self.selected_entry_index, y_size, x_size);
+        let mut current_index = self.top_index;
+        while let Some(entry) = self.entries.get(current_index) {
+            if result.len() >= y_size.into() {
+                break;
+            }
 
-                if index != self.entries.len() - 1 {
-                    content.push("\n".to_string().stylize());
-                }
-                return content;
-            })
-            .collect()
+            let mut content = Self::render_entry(
+                entry,
+                current_index == self.selected_entry_index,
+                y_size,
+                x_size,
+            );
+
+            if current_index != self.entries.len() - 1 {
+                content.push("\n".to_string().stylize());
+            }
+
+            result.append(&mut content);
+
+            current_index += 1;
+        }
+
+        if result.len() > y_size.into() {
+            let _ = result.pop();
+        }
+
+        self.bottom_index = self.top_index + result.len();
+
+        return result;
     }
 
     fn render_entry(entry: &Entry, highlight: bool, _y_size: u16, x_size: u16) -> Renderable {
