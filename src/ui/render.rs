@@ -17,17 +17,29 @@ use crate::{
 };
 
 pub struct UIState {
-    pub entries: Vec<Entry>,
-    pub selected_entry_index: usize,
-    pub top_index: usize,
-    pub y_size: u16,
-    pub x_size: u16,
-    pub previous_command: Option<UIMessage>,
+    entries: Vec<Entry>,
+    selected_entry_index: usize,
+    top_index: Option<usize>,
+    bottom_index: Option<usize>,
+    y_size: u16,
+    x_size: u16,
+    previous_command: Option<UIMessage>,
 }
 
 type Renderable = Vec<StyledContent<String>>;
 
 impl UIState {
+    pub fn new(entries: Vec<Entry>, x_size: u16, y_size: u16) -> Self {
+        Self {
+            entries,
+            selected_entry_index: 0,
+            top_index: None,
+            bottom_index: None,
+            y_size,
+            x_size,
+            previous_command: None,
+        }
+    }
     fn complete_render(&self, stdout: &mut Stdout) -> Result<(), Error> {
         let renderables = self.render_entries(self.y_size, self.x_size - 10);
 
@@ -50,6 +62,8 @@ impl UIState {
     }
 
     fn render_entries(&self, y_size: u16, x_size: u16) -> Renderable {
+        let top_index = self.top_index.unwrap_or(0);
+
         self.entries
             .iter()
             .enumerate()
@@ -134,8 +148,8 @@ pub fn render_loop(
     let mut stdout = stdout();
 
     stdout
-        .queue(crossterm::terminal::EnterAlternateScreen)?
-        .queue(crossterm::cursor::Hide)?;
+        .queue(crossterm::cursor::Hide)?
+        .queue(crossterm::terminal::EnterAlternateScreen)?;
 
     stdout.flush()?;
 

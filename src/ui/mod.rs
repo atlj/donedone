@@ -11,14 +11,11 @@ pub mod render;
 pub fn start_gui_mode(entry_path: &PathBuf) -> Result<(), Error> {
     let (x_size, y_size) = crossterm::terminal::size()?;
 
-    let initial_state = UIState {
-        entries: get_entries(entry_path).unwrap_or(Vec::new()),
-        y_size,
+    let initial_state = UIState::new(
+        get_entries(entry_path).unwrap_or(Vec::new()),
         x_size,
-        selected_entry_index: 0,
-        top_index: 0,
-        previous_command: None,
-    };
+        y_size,
+    );
 
     let (sender, receiver) = channel::<UIMessage>();
 
