@@ -81,13 +81,12 @@ impl UIState {
                 content.push("\n".to_string().stylize());
             }
 
+            if result.len() + content.len() > y_size.into() {
+                break;
+            }
+
             result.append(&mut content);
-
             current_index += 1;
-        }
-
-        if result.len() > y_size.into() {
-            let _ = result.pop();
         }
 
         self.bottom_index = self.top_index + result.len();
