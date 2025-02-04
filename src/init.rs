@@ -17,7 +17,8 @@ pub fn init() {
     let exclude_path = dot_git_path.join("info").join("exclude");
     match OpenOptions::new().append(true).open(exclude_path) {
         Ok(mut file) => {
-            file.write(b"dndn");
+            file.write(b"\ndndn");
+            println!("✅ Successfully initialized dndn");
         }
         Err(error) => {
             println!("Couldn't open the exclude file: {}", error);
