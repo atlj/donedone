@@ -48,6 +48,7 @@ impl UIState {
 
         Ok(())
     }
+
     fn render_entries(&self, y_size: u16, x_size: u16) -> Renderable {
         self.entries
             .iter()
@@ -63,6 +64,7 @@ impl UIState {
             })
             .collect()
     }
+
     fn render_entry(entry: &Entry, highlight: bool, _y_size: u16, x_size: u16) -> Renderable {
         let mut result = Vec::new();
 
@@ -142,7 +144,7 @@ pub fn render_loop(
     while let Ok(message) = receiver.recv() {
         match message {
             UIMessage::MoveDown => {
-                if render_state.selected_entry_index < render_state.entries.len() {
+                if render_state.selected_entry_index < render_state.entries.len() - 1 {
                     render_state.selected_entry_index += 1;
                     render_state.complete_render(&mut stdout)?;
                 }
