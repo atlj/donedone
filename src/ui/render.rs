@@ -13,7 +13,7 @@ use crossterm::{
 
 use crate::{
     entry::Entry,
-    file::{get_entries, remove_entry},
+    file::{get_entries, remove_entry, swap_entries},
 };
 
 pub struct UIState {
@@ -152,6 +152,42 @@ pub fn render_loop(
             UIMessage::MoveUp => {
                 if render_state.selected_entry_index > 0 {
                     render_state.selected_entry_index -= 1;
+                    render_state.complete_render(&mut stdout)?;
+                }
+            }
+            UIMessage::SwapEntryUp => {
+                if render_state.selected_entry_index > 0 {
+                    swap_entries(
+                        entry_path,
+                        &render_state.selected_entry_index,
+                        &(render_state.selected_entry_index - 1),
+                    )?;
+
+                    render_state.entries.swap(
+                        render_state.selected_entry_index,
+                        render_state.selected_entry_index - 1,
+                    );
+
+                    render_state.selected_entry_index -= 1;
+
+                    render_state.complete_render(&mut stdout)?;
+                }
+            }
+            UIMessage::SwapEntryDown => {
+                if render_state.selected_entry_index < render_state.entries.len() - 1 {
+                    swap_entries(
+                        entry_path,
+                        &render_state.selected_entry_index,
+                        &(render_state.selected_entry_index + 1),
+                    )?;
+
+                    render_state.entries.swap(
+                        render_state.selected_entry_index,
+                        render_state.selected_entry_index + 1,
+                    );
+
+                    render_state.selected_entry_index += 1;
+
                     render_state.complete_render(&mut stdout)?;
                 }
             }
