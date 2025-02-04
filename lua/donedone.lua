@@ -35,7 +35,7 @@ function donedone.add_entry(comment)
     add_entry(comment)
   else
     comment = vim.ui.input(
-      { prompt = "Add a dndn entry" },
+      { prompt = "Create a dndn entry" },
       ---@param input string?
       function(input)
         if input == nil then
@@ -55,7 +55,7 @@ function donedone.setup()
       donedone.add_entry()
     end,
     {
-      desc = "Add a new dndn entry."
+      desc = "Create a new dndn entry."
     }
   )
 end
