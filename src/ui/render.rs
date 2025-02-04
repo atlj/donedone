@@ -65,6 +65,7 @@ impl UIState {
         let mut result: Renderable = vec![];
 
         let mut current_index = self.top_index;
+        let mut displayed_entries = 0;
         while let Some(entry) = self.entries.get(current_index) {
             if result.len() >= y_size.into() {
                 break;
@@ -86,10 +87,11 @@ impl UIState {
             }
 
             result.append(&mut content);
+            displayed_entries += 1;
             current_index += 1;
         }
 
-        self.bottom_index = self.top_index + result.len();
+        self.bottom_index = self.top_index + displayed_entries;
 
         return result;
     }
@@ -174,12 +176,20 @@ pub fn render_loop(
         match message {
             UIMessage::MoveDown => {
                 if render_state.selected_entry_index < render_state.entries.len() - 1 {
+                    if render_state.selected_entry_index == render_state.bottom_index - 1 {
+                        render_state.top_index += 1;
+                    }
+
                     render_state.selected_entry_index += 1;
                     render_state.complete_render(&mut stdout)?;
                 }
             }
             UIMessage::MoveUp => {
                 if render_state.selected_entry_index > 0 {
+                    if render_state.selected_entry_index == render_state.top_index {
+                        render_state.top_index -= 1;
+                    }
+
                     render_state.selected_entry_index -= 1;
                     render_state.complete_render(&mut stdout)?;
                 }
@@ -196,6 +206,10 @@ pub fn render_loop(
                         render_state.selected_entry_index,
                         render_state.selected_entry_index - 1,
                     );
+
+                    if render_state.selected_entry_index == render_state.top_index {
+                        render_state.top_index -= 1;
+                    }
 
                     render_state.selected_entry_index -= 1;
 
@@ -214,6 +228,10 @@ pub fn render_loop(
                         render_state.selected_entry_index,
                         render_state.selected_entry_index + 1,
                     );
+
+                    if render_state.selected_entry_index == render_state.bottom_index - 1 {
+                        render_state.top_index += 1;
+                    }
 
                     render_state.selected_entry_index += 1;
 
