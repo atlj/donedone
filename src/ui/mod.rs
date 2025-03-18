@@ -62,6 +62,11 @@ impl TryInto<UIMessage> for KeyEvent {
 
     fn try_into(self) -> Result<UIMessage, Self::Error> {
         match self.code {
+            KeyCode::Char('d') if self.modifiers == KeyModifiers::CONTROL => {
+                Ok(UIMessage::JumpDown)
+            }
+            KeyCode::Char('u') if self.modifiers == KeyModifiers::CONTROL => Ok(UIMessage::JumpUp),
+
             KeyCode::Char('j') => Ok(UIMessage::MoveDown),
             KeyCode::Down => Ok(UIMessage::MoveDown),
 
