@@ -156,16 +156,20 @@ impl UIState {
     }
 
     fn render_scroll_bar(&self, y_size: u16, entry_window_y_size: u16) -> Renderable {
+        let mut result: Renderable = vec![];
+
+        if (self.entries.len() * AVERAGE_ENTRY_LENGTH) - 1 < entry_window_y_size.into() {
+            return result;
+        }
+
         let displayed_entries =
-            (entry_window_y_size as f32 / AVERAGE_ENTRY_LENGTH as f32).round() as usize;
+            (entry_window_y_size as f32 / AVERAGE_ENTRY_LENGTH as f32).round() as usize - 1;
 
         let thumb_size_ratio = displayed_entries as f32 / self.entries.len() as f32;
         let thumb_size = (thumb_size_ratio * y_size as f32).round() as usize;
 
         let thumb_start_y = (y_size as f32 * (self.top_index as f32 / (self.entries.len() as f32)))
             .round() as usize;
-
-        let mut result: Renderable = vec![];
 
         for _ in 0..thumb_start_y {
             result.push("|".to_string().stylize());
