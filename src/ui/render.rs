@@ -28,6 +28,8 @@ pub struct UIState {
 
 type Renderable = Vec<StyledContent<String>>;
 
+const AVERAGE_ENTRY_LENGTH: usize = 3;
+
 impl UIState {
     pub fn new(entries: Vec<Entry>, x_size: u16, y_size: u16) -> Self {
         Self {
@@ -53,6 +55,17 @@ impl UIState {
             stdout
                 .queue(crossterm::cursor::MoveToColumn(5))?
                 .queue(crossterm::cursor::MoveToRow(y as u16))?
+                .queue(crossterm::style::Print(contents))?;
+        }
+
+        let scroll_bar = self.render_scroll_bar(self.y_size - 6, self.y_size);
+
+        for (y, contents) in scroll_bar.into_iter().enumerate() {
+            assert!(y <= self.y_size.into(), "Trying to print outside of screen");
+
+            stdout
+                .queue(crossterm::cursor::MoveToColumn(self.x_size - 2))?
+                .queue(crossterm::cursor::MoveToRow(y as u16 + 2))?
                 .queue(crossterm::style::Print(contents))?;
         }
 
@@ -137,6 +150,33 @@ impl UIState {
             if let Some(line) = file.lines().nth(entry.line - 1) {
                 result.push(line.trim().to_string().italic().dark_grey())
             }
+        }
+
+        return result;
+    }
+
+    fn render_scroll_bar(&self, y_size: u16, entry_window_y_size: u16) -> Renderable {
+        let displayed_entries =
+            (entry_window_y_size as f32 / AVERAGE_ENTRY_LENGTH as f32).round() as usize;
+
+        let thumb_size_ratio = displayed_entries as f32 / self.entries.len() as f32;
+        let thumb_size = (thumb_size_ratio * y_size as f32).round() as usize;
+
+        let thumb_start_y = (y_size as f32 * (self.top_index as f32 / (self.entries.len() as f32)))
+            .round() as usize;
+
+        let mut result: Renderable = vec![];
+
+        for _ in 0..thumb_start_y {
+            result.push("|".to_string().stylize());
+        }
+
+        for _ in 0..thumb_size {
+            result.push("#".to_string().stylize());
+        }
+
+        for _ in 0..(y_size as usize - thumb_size - thumb_start_y) {
+            result.push("|".to_string().stylize());
         }
 
         return result;
@@ -244,6 +284,7 @@ pub fn render_loop(
                     Some(UIMessage::DeleteSelectedEntry)
                 ) {
                     remove_entry(entry_path, &render_state.selected_entry_index)?;
+                    render_state.previous_command = None;
                     if let Some(entries) = get_entries(entry_path) {
                         render_state.entries = entries;
 
