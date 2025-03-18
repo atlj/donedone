@@ -207,6 +207,8 @@ pub enum UIMessage {
     Resize { y_size: u16, x_size: u16 },
     JumpDown,
     JumpUp,
+    JumpToTop,
+    JumpToBottom,
 }
 
 pub fn render_loop(
@@ -343,6 +345,16 @@ pub fn render_loop(
                     }
                 }
 
+                render_state.complete_render(&mut stdout)?;
+            }
+            UIMessage::JumpToTop => {
+                render_state.selected_entry_index = 0;
+                render_state.top_index = 0;
+                render_state.complete_render(&mut stdout)?;
+            }
+            UIMessage::JumpToBottom => {
+                render_state.selected_entry_index = render_state.entries.len() - 1;
+                render_state.top_index = render_state.entries.len() - 1;
                 render_state.complete_render(&mut stdout)?;
             }
             UIMessage::Exit => {
