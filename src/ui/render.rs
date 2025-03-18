@@ -334,15 +334,15 @@ pub fn render_loop(
                         render_state.selected_entry_index - JUMP_AMOUNT;
                 }
 
-                if render_state.top_index - render_state.selected_entry_index
-                    > SCROLL_THRESHOLD_ITEMS
+                if render_state.selected_entry_index >= render_state.top_index
+                    || SCROLL_THRESHOLD_ITEMS >= render_state.selected_entry_index
                 {
-                    if SCROLL_THRESHOLD_ITEMS > render_state.selected_entry_index {
-                        render_state.top_index = 0;
-                    } else {
-                        render_state.top_index =
-                            render_state.selected_entry_index - SCROLL_THRESHOLD_ITEMS;
-                    }
+                    render_state.top_index = 0;
+                } else if render_state.top_index - render_state.selected_entry_index
+                    >= SCROLL_THRESHOLD_ITEMS
+                {
+                    render_state.top_index =
+                        render_state.selected_entry_index - SCROLL_THRESHOLD_ITEMS;
                 }
 
                 render_state.complete_render(&mut stdout)?;
