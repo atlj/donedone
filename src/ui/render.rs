@@ -41,6 +41,7 @@ impl UIState {
             previous_command: None,
         }
     }
+
     fn complete_render(&mut self, stdout: &mut Stdout) -> Result<(), Error> {
         let renderables = self.render_entries(self.y_size, self.x_size - 10);
 
@@ -209,9 +210,10 @@ pub enum UIMessage {
 
 pub fn render_loop(
     mut file_handler: EntryFileHandler,
-    mut render_state: UIState,
     receiver: Receiver<UIMessage>,
 ) -> Result<(), Error> {
+    let (initial_x_size, initial_y_size) = crossterm::terminal::size()?;
+    let mut render_state = UIState::new(file_handler.get_entries(), initial_x_size, initial_y_size);
     let mut stdout = stdout();
 
     stdout

@@ -1,24 +1,21 @@
 use std::{io::Error, sync::mpsc::channel, thread::spawn};
 
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
-use render::{render_loop, UIMessage, UIState};
+use render::{render_loop, UIMessage};
 
 use crate::file::EntryFileHandler;
 
 pub mod io;
 pub mod render;
 
-pub fn start_gui_mode(mut file_handler: EntryFileHandler) -> Result<(), Error> {
-    let (x_size, y_size) = crossterm::terminal::size()?;
-    let initial_state = UIState::new(file_handler.get_entries(), x_size, y_size);
-
+pub fn start_gui_mode(file_handler: EntryFileHandler) -> Result<(), Error> {
     let (sender, receiver) = channel::<UIMessage>();
 
-    spawn(move || render_loop(file_handler, initial_state, receiver));
+    spawn(move || render_loop(file_handler, receiver));
 
     crossterm::terminal::enable_raw_mode()?;
 
-    while let event = crossterm::event::read()? {
+    while let Ok(event) = crossterm::event::read() {
         match event {
             Event::Resize(x_size, y_size) => {
                 sender.send(UIMessage::Resize { y_size, x_size });
