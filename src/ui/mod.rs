@@ -12,7 +12,7 @@ pub fn start_gui_mode(entry_path: &PathBuf) -> Result<(), Error> {
     let (x_size, y_size) = crossterm::terminal::size()?;
 
     let initial_state = UIState::new(
-        get_entries(entry_path).unwrap_or(Vec::new()),
+        get_entries(entry_path).unwrap_or_default(),
         x_size,
         y_size,
     );

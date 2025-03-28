@@ -1,5 +1,5 @@
 use std::{
-    cmp::{max, min},
+    cmp::min,
     env::current_dir,
     fs::read_to_string,
     io::{stdout, Error, Stdout, Write},
@@ -109,7 +109,7 @@ impl UIState {
 
         self.bottom_index = self.top_index + displayed_entries;
 
-        return result;
+        result
     }
 
     fn render_entry(entry: &Entry, highlight: bool, _y_size: u16, x_size: u16) -> Renderable {
@@ -120,7 +120,7 @@ impl UIState {
                 .chars()
                 .collect::<Vec<_>>()
                 .chunks(x_size.into())
-                .map(|chunk| chunk.into_iter().collect::<String>())
+                .map(|chunk| chunk.iter().collect::<String>())
                 .for_each(|row| {
                     let mut content = row.bold();
                     if highlight {
@@ -155,7 +155,7 @@ impl UIState {
             }
         }
 
-        return result;
+        result
     }
 
     fn render_scroll_bar(&self, y_size: u16, entry_window_y_size: u16) -> Renderable {
@@ -189,7 +189,7 @@ impl UIState {
             result.push("|".to_string().stylize());
         }
 
-        return result;
+        result
     }
 }
 
@@ -330,8 +330,7 @@ pub fn render_loop(
                 if JUMP_AMOUNT > render_state.selected_entry_index {
                     render_state.selected_entry_index = 0;
                 } else {
-                    render_state.selected_entry_index =
-                        render_state.selected_entry_index - JUMP_AMOUNT;
+                    render_state.selected_entry_index -= JUMP_AMOUNT;
                 }
 
                 if render_state.selected_entry_index >= render_state.top_index
