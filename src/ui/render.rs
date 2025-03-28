@@ -13,6 +13,8 @@ use crossterm::{
 
 use crate::{entry::Entry, file::EntryFileHandler};
 
+use super::io::Action;
+
 pub struct UIState {
     entries: Vec<Entry>,
     selected_entry_index: usize,
@@ -20,7 +22,7 @@ pub struct UIState {
     bottom_index: usize,
     y_size: u16,
     x_size: u16,
-    previous_command: Option<UIMessage>,
+    previous_command: Option<Action>,
 }
 
 type Renderable = Vec<StyledContent<String>>;
@@ -190,27 +192,9 @@ impl UIState {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum UIMessage {
-    Exit,
-    MoveDown,
-    MoveUp,
-    SwapEntryUp,
-    SwapEntryDown,
-    NextPage,
-    PreviousPage,
-    DeleteSelectedEntry,
-    SyncEntries { entries: Vec<Entry> },
-    Resize { y_size: u16, x_size: u16 },
-    JumpDown,
-    JumpUp,
-    JumpToTop,
-    JumpToBottom,
-}
-
 pub fn render_loop(
     mut file_handler: EntryFileHandler,
-    receiver: Receiver<UIMessage>,
+    receiver: Receiver<Action>,
 ) -> Result<(), Error> {
     let (initial_x_size, initial_y_size) = crossterm::terminal::size()?;
     let mut render_state = UIState::new(file_handler.get_entries(), initial_x_size, initial_y_size);
@@ -226,7 +210,7 @@ pub fn render_loop(
 
     while let Ok(message) = receiver.recv() {
         match message {
-            UIMessage::MoveDown => {
+            Action::MoveDown => {
                 if render_state.selected_entry_index < render_state.entries.len() - 1 {
                     if render_state.selected_entry_index == render_state.bottom_index - 1 {
                         render_state.top_index += 1;
@@ -236,7 +220,7 @@ pub fn render_loop(
                     render_state.complete_render(&mut stdout)?;
                 }
             }
-            UIMessage::MoveUp => {
+            Action::MoveUp => {
                 if render_state.selected_entry_index > 0 {
                     if render_state.selected_entry_index == render_state.top_index {
                         render_state.top_index -= 1;
@@ -246,7 +230,7 @@ pub fn render_loop(
                     render_state.complete_render(&mut stdout)?;
                 }
             }
-            UIMessage::SwapEntryUp => {
+            Action::SwapEntryUp => {
                 if render_state.selected_entry_index > 0 {
                     file_handler.swap_entries(
                         &render_state.selected_entry_index,
@@ -267,7 +251,7 @@ pub fn render_loop(
                     render_state.complete_render(&mut stdout)?;
                 }
             }
-            UIMessage::SwapEntryDown => {
+            Action::SwapEntryDown => {
                 if render_state.selected_entry_index < render_state.entries.len() - 1 {
                     file_handler.swap_entries(
                         &render_state.selected_entry_index,
@@ -288,10 +272,10 @@ pub fn render_loop(
                     render_state.complete_render(&mut stdout)?;
                 }
             }
-            UIMessage::DeleteSelectedEntry => {
+            Action::DeleteSelectedEntry => {
                 if matches!(
                     render_state.previous_command,
-                    Some(UIMessage::DeleteSelectedEntry)
+                    Some(Action::DeleteSelectedEntry)
                 ) {
                     file_handler.remove_entry(&render_state.selected_entry_index)?;
                     render_state.previous_command = None;
@@ -305,7 +289,7 @@ pub fn render_loop(
                     render_state.complete_render(&mut stdout)?;
                 }
             }
-            UIMessage::JumpDown => {
+            Action::JumpDown => {
                 render_state.selected_entry_index = min(
                     render_state.selected_entry_index + JUMP_AMOUNT,
                     render_state.entries.len() - 1,
@@ -322,7 +306,7 @@ pub fn render_loop(
 
                 render_state.complete_render(&mut stdout)?;
             }
-            UIMessage::JumpUp => {
+            Action::JumpUp => {
                 if JUMP_AMOUNT > render_state.selected_entry_index {
                     render_state.selected_entry_index = 0;
                 } else {
@@ -342,17 +326,17 @@ pub fn render_loop(
 
                 render_state.complete_render(&mut stdout)?;
             }
-            UIMessage::JumpToTop => {
+            Action::JumpToTop => {
                 render_state.selected_entry_index = 0;
                 render_state.top_index = 0;
                 render_state.complete_render(&mut stdout)?;
             }
-            UIMessage::JumpToBottom => {
+            Action::JumpToBottom => {
                 render_state.selected_entry_index = render_state.entries.len() - 1;
                 render_state.top_index = render_state.entries.len() - 1;
                 render_state.complete_render(&mut stdout)?;
             }
-            UIMessage::Exit => {
+            Action::Exit => {
                 stdout.execute(crossterm::terminal::LeaveAlternateScreen)?;
                 return Ok(());
             }
