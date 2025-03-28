@@ -1,11 +1,11 @@
 use std::{
     env::current_dir,
     fs::{exists, OpenOptions},
-    io::Write,
+    io::{BufRead, BufReader, Error, Write},
     process::exit,
 };
 
-pub fn init() {
+pub fn init() -> Result<(), Error> {
     let dir = current_dir().expect("No dir?");
     let dot_git_path = dir.join(".git");
 
@@ -15,14 +15,24 @@ pub fn init() {
     }
 
     let exclude_path = dot_git_path.join("info").join("exclude");
-    match OpenOptions::new().append(true).open(exclude_path) {
-        Ok(mut file) => {
-            file.write(b"\ndndn");
-            println!("✅ Successfully initialized dndn");
-        }
-        Err(error) => {
-            println!("Couldn't open the exclude file: {}", error);
+    let mut git_exclude_file = OpenOptions::new()
+        .read(true)
+        .append(true)
+        .open(exclude_path)?;
+    let mut reader = BufReader::new(&git_exclude_file);
+
+    let mut line = String::new();
+    while reader.read_line(&mut line)? != 0 {
+        if line.trim() == "dndn" {
+            println!("⚠ dndn has already been initialized in this project");
             exit(2);
         }
+        line.clear();
     }
+
+    git_exclude_file.write(b"\ndndn")?;
+
+    println!("✅ Successfully initialized dndn");
+
+    return Ok(());
 }
