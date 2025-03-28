@@ -3,7 +3,6 @@ use std::{
     env::current_dir,
     fs::read_to_string,
     io::{stdout, Error, Stdout, Write},
-    path::PathBuf,
     sync::mpsc::Receiver,
 };
 
@@ -12,10 +11,7 @@ use crossterm::{
     ExecutableCommand, QueueableCommand,
 };
 
-use crate::{
-    entry::Entry,
-    file::{get_entries, remove_entry, swap_entries},
-};
+use crate::{entry::Entry, file::EntryFileHandler};
 
 pub struct UIState {
     entries: Vec<Entry>,
@@ -212,7 +208,7 @@ pub enum UIMessage {
 }
 
 pub fn render_loop(
-    entry_path: &PathBuf,
+    mut file_handler: EntryFileHandler,
     mut render_state: UIState,
     receiver: Receiver<UIMessage>,
 ) -> Result<(), Error> {
@@ -250,8 +246,7 @@ pub fn render_loop(
             }
             UIMessage::SwapEntryUp => {
                 if render_state.selected_entry_index > 0 {
-                    swap_entries(
-                        entry_path,
+                    file_handler.swap_entries(
                         &render_state.selected_entry_index,
                         &(render_state.selected_entry_index - 1),
                     )?;
@@ -272,8 +267,7 @@ pub fn render_loop(
             }
             UIMessage::SwapEntryDown => {
                 if render_state.selected_entry_index < render_state.entries.len() - 1 {
-                    swap_entries(
-                        entry_path,
+                    file_handler.swap_entries(
                         &render_state.selected_entry_index,
                         &(render_state.selected_entry_index + 1),
                     )?;
@@ -297,15 +291,15 @@ pub fn render_loop(
                     render_state.previous_command,
                     Some(UIMessage::DeleteSelectedEntry)
                 ) {
-                    remove_entry(entry_path, &render_state.selected_entry_index)?;
+                    file_handler.remove_entry(&render_state.selected_entry_index)?;
                     render_state.previous_command = None;
-                    if let Some(entries) = get_entries(entry_path) {
-                        render_state.entries = entries;
 
-                        if render_state.selected_entry_index > 0 {
-                            render_state.selected_entry_index -= 1;
-                        }
+                    render_state.entries = file_handler.get_entries();
+
+                    if render_state.selected_entry_index > 0 {
+                        render_state.selected_entry_index -= 1;
                     }
+
                     render_state.complete_render(&mut stdout)?;
                 }
             }

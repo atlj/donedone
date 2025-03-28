@@ -4,7 +4,7 @@ use clap::Parser;
 use donedone::{
     args::{Args, Commands},
     entry::Entry,
-    file::{add_entry, remove_entry},
+    file::EntryFileHandler,
     init::init,
     ui::start_gui_mode,
 };
@@ -19,9 +19,11 @@ fn main() {
         args.file_path = Some(path);
     }
 
+    let mut file_handler = EntryFileHandler::from_file_path(&args.file_path.unwrap()).unwrap(); // remove
+                                                                                                // unwrap
     match args.command {
         None => {
-            start_gui_mode(&args.file_path.unwrap());
+            start_gui_mode(file_handler);
         }
         Some(Commands::Add {
             file_path,
@@ -34,13 +36,13 @@ fn main() {
                 line,
             };
 
-            add_entry(&args.file_path.unwrap(), &entry);
+            file_handler.add_entry(&entry);
         }
         Some(Commands::Init {}) => {
             init();
         }
         Some(Commands::Remove { index }) => {
-            remove_entry(&args.file_path.unwrap(), &index).unwrap();
+            file_handler.remove_entry(&index).unwrap();
         }
     }
 }

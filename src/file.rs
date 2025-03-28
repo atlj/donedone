@@ -1,79 +1,115 @@
 use std::{
-    fs::{read_to_string, OpenOptions},
-    io::{Error, Read, Seek, Write},
+    fs::{File, OpenOptions},
+    io::{BufRead, BufReader, BufWriter, Error, Read, Seek, Write},
     path::PathBuf,
 };
 
 use crate::entry::Entry;
 
-pub fn get_entries(path: &PathBuf) -> Option<Vec<Entry>> {
-    let mut entries = Vec::new();
+#[derive(Debug)]
+pub struct EntryFileHandler {
+    reader: BufReader<File>,
+    writer: BufWriter<File>,
+}
 
-    for entry_string in read_to_string(path).ok()?.split("\n\n") {
-        match Entry::deserialize(entry_string) {
-            Err(error) => println!("Couldn't parse the dndn file: {}", error),
-            Ok(entry) => entries.push(entry),
-        }
+impl EntryFileHandler {
+    pub fn from_file_path(path: &PathBuf) -> Result<EntryFileHandler, Error> {
+        let read_handle = OpenOptions::new().read(true).open(path.clone())?;
+
+        let reader = BufReader::new(read_handle);
+
+        let write_handler = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .open(path.clone())?;
+
+        let writer = BufWriter::new(write_handler);
+
+        Ok(EntryFileHandler { reader, writer })
     }
 
-    Some(entries)
-}
+    pub fn get_entries(&mut self) -> Vec<Entry> {
+        let mut entries = Vec::new();
 
-pub fn add_entry(path: &PathBuf, entry: &Entry) -> Result<(), Error> {
-    let mut file = OpenOptions::new().create(true).append(true).open(path)?;
-    let serialized = entry.serialize();
-    file.write(&serialized.into_bytes())?;
-    Ok(())
-}
+        let mut entry_string = String::with_capacity(100);
+        let mut read_head = String::with_capacity(100);
 
-pub fn remove_entry(path: &PathBuf, index_to_remove: &usize) -> Result<(), Error> {
-    let mut file = OpenOptions::new()
-        .read(true)
-        .write(true)
-        .append(false)
-        .open(path)?;
-    let mut contents = String::new();
-    file.read_to_string(&mut contents)?;
+        while self
+            .reader
+            .read_line(&mut read_head)
+            .is_ok_and(|read_count| read_count != 0)
+        {
+            entry_string.push_str(&read_head);
+            if read_head == "\n" {
+                if let Ok(entry) = Entry::deserialize(&entry_string) {
+                    entries.push(entry);
+                };
 
-    let entries = contents
-        .split("\n\n")
-        .enumerate()
-        .filter_map(|(index, entry)| {
-            if &index == index_to_remove {
-                None
-            } else {
-                Some(entry)
+                entry_string.clear();
             }
-        })
-        .collect::<Vec<_>>()
-        .join("\n\n");
 
-    file.set_len(0)?;
-    file.rewind()?;
-    file.write(entries.as_bytes())?;
-    file.flush()?;
+            read_head.clear();
+        }
 
-    Ok(())
-}
+        let _ = self.reader.rewind().inspect_err(|err| {
+            dbg!(err);
+        });
 
-pub fn swap_entries(path: &PathBuf, index_a: &usize, index_b: &usize) -> Result<(), Error> {
-    let mut file = OpenOptions::new()
-        .read(true)
-        .write(true)
-        .append(false)
-        .open(path)?;
-    let mut contents = String::new();
-    file.read_to_string(&mut contents)?;
+        entries
+    }
 
-    let mut entries = contents.split("\n\n").collect::<Vec<_>>();
+    pub fn add_entry(&mut self, entry: &Entry) -> Result<(), Error> {
+        let serialized = entry.serialize();
+        self.writer.seek(std::io::SeekFrom::End((0)));
+        self.writer.write(&serialized.into_bytes())?;
+        self.writer.flush();
+        self.writer.rewind();
+        Ok(())
+    }
 
-    entries.swap(*index_a, *index_b);
-    let result = entries.join("\n\n");
+    pub fn remove_entry(&mut self, index_to_remove: &usize) -> Result<(), Error> {
+        let mut file_contents = String::new();
+        self.reader.read_to_string(&mut file_contents);
 
-    file.set_len(0)?;
-    file.rewind()?;
-    file.write(result.as_bytes())?;
-    file.flush()?;
+        let filtered_entries_string = file_contents
+            .split("\n\n")
+            .enumerate()
+            .filter_map(|(index, entry)| {
+                if &index == index_to_remove {
+                    None
+                } else {
+                    Some(entry)
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n\n");
 
-    Ok(())
+        self.writer.get_ref().set_len(0);
+        self.writer.rewind();
+        self.writer.write_all(filtered_entries_string.as_bytes());
+        self.writer.flush();
+
+        self.reader.rewind();
+
+        Ok(())
+    }
+
+    pub fn swap_entries(&mut self, index_a: &usize, index_b: &usize) -> Result<(), Error> {
+        let mut file_contents = String::new();
+        self.reader.read_to_string(&mut file_contents);
+
+        let mut entry_strings = file_contents.split("\n\n").collect::<Vec<_>>();
+
+        entry_strings.swap(*index_a, *index_b);
+        let swapped_entries_string = entry_strings.join("\n\n");
+
+        self.writer.get_ref().set_len(0);
+        self.writer.rewind();
+        self.writer.write_all(swapped_entries_string.as_bytes());
+        self.writer.flush();
+
+        self.reader.rewind();
+
+        Ok(())
+    }
 }

@@ -3,25 +3,18 @@ use std::{io::Error, path::PathBuf, sync::mpsc::channel, thread::spawn};
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use render::{render_loop, UIMessage, UIState};
 
-use crate::file::get_entries;
+use crate::file::EntryFileHandler;
 
 pub mod io;
 pub mod render;
 
-pub fn start_gui_mode(entry_path: &PathBuf) -> Result<(), Error> {
+pub fn start_gui_mode(mut file_handler: EntryFileHandler) -> Result<(), Error> {
     let (x_size, y_size) = crossterm::terminal::size()?;
-
-    let initial_state = UIState::new(
-        get_entries(entry_path).unwrap_or_default(),
-        x_size,
-        y_size,
-    );
+    let initial_state = UIState::new(file_handler.get_entries(), x_size, y_size);
 
     let (sender, receiver) = channel::<UIMessage>();
 
-    let path_clone = entry_path.clone();
-
-    spawn(move || render_loop(&path_clone, initial_state, receiver));
+    spawn(move || render_loop(file_handler, initial_state, receiver));
 
     crossterm::terminal::enable_raw_mode()?;
 
