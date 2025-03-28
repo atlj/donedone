@@ -161,7 +161,7 @@ impl UIState {
     fn render_scroll_bar(&self, y_size: u16, entry_window_y_size: u16) -> Renderable {
         let mut result: Renderable = vec![];
 
-        if (self.entries.len() * AVERAGE_ENTRY_LENGTH) - 1 < entry_window_y_size.into() {
+        if (self.entries.len() * AVERAGE_ENTRY_LENGTH) < (entry_window_y_size + 1).into() {
             return result;
         }
 
