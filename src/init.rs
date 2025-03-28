@@ -34,5 +34,5 @@ pub fn init() -> Result<(), Error> {
 
     println!("✅ Successfully initialized dndn");
 
-    return Ok(());
+    Ok(())
 }

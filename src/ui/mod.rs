@@ -1,4 +1,4 @@
-use std::{io::Error, path::PathBuf, sync::mpsc::channel, thread::spawn};
+use std::{io::Error, sync::mpsc::channel, thread::spawn};
 
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use render::{render_loop, UIMessage, UIState};

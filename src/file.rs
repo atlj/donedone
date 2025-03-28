@@ -60,7 +60,7 @@ impl EntryFileHandler {
 
     pub fn add_entry(&mut self, entry: &Entry) -> Result<(), Error> {
         let serialized = entry.serialize();
-        self.writer.seek(std::io::SeekFrom::End((0)));
+        self.writer.seek(std::io::SeekFrom::End(0));
         self.writer.write(&serialized.into_bytes())?;
         self.writer.flush();
         self.writer.rewind();
