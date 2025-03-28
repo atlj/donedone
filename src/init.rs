@@ -30,7 +30,7 @@ pub fn init() -> Result<(), Error> {
         line.clear();
     }
 
-    git_exclude_file.write(b"\ndndn")?;
+    _ = git_exclude_file.write(b"\ndndn")?;
 
     println!("✅ Successfully initialized dndn");
 

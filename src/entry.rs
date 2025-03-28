@@ -1,4 +1,4 @@
-use std::{fmt::Display, path::PathBuf, usize};
+use std::{fmt::Display, path::PathBuf};
 
 #[derive(Debug, Clone)]
 pub struct Entry {

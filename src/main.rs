@@ -6,6 +6,7 @@ use donedone::{
     entry::Entry,
     file::EntryFileHandler,
     init::init,
+    log::LogError,
     ui::start_gui_mode,
 };
 
@@ -23,7 +24,7 @@ fn main() {
                                                                                                 // unwrap
     match args.command {
         None => {
-            start_gui_mode(file_handler);
+            start_gui_mode(file_handler).log_if_err();
         }
         Some(Commands::Add {
             file_path,
@@ -36,10 +37,10 @@ fn main() {
                 line,
             };
 
-            file_handler.add_entry(&entry);
+            file_handler.add_entry(&entry).log_if_err();
         }
         Some(Commands::Init {}) => {
-            init();
+            init().log_if_err();
         }
         Some(Commands::Remove { index }) => {
             file_handler.remove_entry(&index).unwrap();

@@ -3,7 +3,7 @@ use std::{io::Error, sync::mpsc::channel, thread::spawn};
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 use render::{render_loop, UIMessage};
 
-use crate::file::EntryFileHandler;
+use crate::{file::EntryFileHandler, log::LogError};
 
 pub mod io;
 pub mod render;
@@ -18,11 +18,13 @@ pub fn start_gui_mode(file_handler: EntryFileHandler) -> Result<(), Error> {
     while let Ok(event) = crossterm::event::read() {
         match event {
             Event::Resize(x_size, y_size) => {
-                sender.send(UIMessage::Resize { y_size, x_size });
+                sender
+                    .send(UIMessage::Resize { y_size, x_size })
+                    .log_if_err();
             }
             Event::Key(key_event) => {
                 if let Ok(ui_message) = TryInto::<UIMessage>::try_into(key_event) {
-                    sender.send(ui_message);
+                    sender.send(ui_message).log_if_err();
                 }
 
                 match key_event.code {
@@ -41,7 +43,7 @@ pub fn start_gui_mode(file_handler: EntryFileHandler) -> Result<(), Error> {
         }
     }
 
-    sender.send(UIMessage::Exit);
+    sender.send(UIMessage::Exit).log_if_err();
     crossterm::terminal::disable_raw_mode()?;
 
     Ok(())
