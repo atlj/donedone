@@ -21,6 +21,11 @@ pub fn start_gui_mode(file_handler: EntryFileHandler) -> Result<(), Error> {
             Event::Resize(x_size, y_size) => {
                 sender.send(Action::Resize { y_size, x_size }).log_if_err();
             }
+            Event::Mouse(mouse_event) => {
+                if let Ok(action) = mouse_event.try_into() {
+                    sender.send(action).log_if_err();
+                }
+            }
             Event::Key(key_event) => {
                 if let Ok(action) = key_event.try_into() {
                     if matches!(action, Action::Exit) {

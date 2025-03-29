@@ -1,4 +1,4 @@
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent};
 
 use crate::entry::Entry;
 
@@ -18,6 +18,18 @@ pub enum Action {
     JumpUp,
     JumpToTop,
     JumpToBottom,
+}
+
+impl TryInto<Action> for MouseEvent {
+    type Error = ();
+
+    fn try_into(self) -> Result<Action, Self::Error> {
+        match self.kind {
+            crossterm::event::MouseEventKind::ScrollDown => Ok(Action::MoveDown),
+            crossterm::event::MouseEventKind::ScrollUp => Ok(Action::MoveUp),
+            _ => Err(()),
+        }
+    }
 }
 
 impl TryInto<Action> for KeyEvent {
