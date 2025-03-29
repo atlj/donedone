@@ -1,5 +1,5 @@
 use std::{
-    cmp::{max, min},
+    cmp::min,
     env::current_dir,
     fs::OpenOptions,
     io::{stdout, BufRead, BufReader, BufWriter, Error, Stdout, Write},
@@ -49,13 +49,6 @@ impl UIState {
             x_size,
             previous_action: None,
         }
-    }
-
-    fn get_total_content_height(&self) -> usize {
-        self.entry_comments.iter().map(|comment| comment.len()).sum::<usize>() + // total comment lines
-           2 * self.entries.len() + // code + path
-           max(1,self.entries.len()) // gaps
-            - 1
     }
 
     fn resize(&mut self, y_size: u16, x_size: u16) {
@@ -283,13 +276,56 @@ impl UIState {
         ]
     }
 
-    fn select_entry(&mut self, index: usize) {
-        self.selected_entry_index = min(self.entries.len(), index);
+    fn select_entry(&mut self, index: usize, window_height: usize, edge_threshold: usize) {
+        self.selected_entry_index = min(self.entries.len() - 1, index);
 
-        // Make the entry visible while not having any blank space
-        // Also keep some buffer near
-        // Change the top and bottom indices accordingly
-        // But we also need to know the content sizes accordingly
+        // Clamp to 0
+        if edge_threshold >= self.selected_entry_index {
+            self.top_index = 0;
+            return;
+        }
+
+        // Scroll up
+        if self.selected_entry_index - edge_threshold < self.top_index {
+            self.top_index = self.selected_entry_index - edge_threshold;
+            return;
+        }
+
+        // Scroll down
+        if self.selected_entry_index + edge_threshold >= self.bottom_index {
+            let bottom_index_goal = min(
+                self.selected_entry_index + edge_threshold,
+                self.entries.len() - 1,
+            );
+
+            let mut height_to_fill = window_height.clone();
+            let mut comments = self
+                .entry_comments
+                .iter()
+                .rev()
+                .skip(self.entries.len() - 1 - bottom_index_goal); // rename me
+
+            let mut top_index = bottom_index_goal;
+            while let Some(entry_comments) = comments.next() {
+                let entry_height = entry_comments.len() // comments
+                    + 2; // code and path
+
+                if entry_height > height_to_fill {
+                    break;
+                }
+
+                height_to_fill -= entry_height;
+
+                // Gap
+                if height_to_fill > 0 {
+                    height_to_fill -= 1;
+                }
+
+                top_index -= 1;
+            }
+
+            self.top_index = top_index + 1
+        }
     }
 }
 
@@ -315,21 +351,21 @@ pub fn render_loop(
         match action {
             Action::MoveDown => {
                 if render_state.selected_entry_index < render_state.entries.len() - 1 {
-                    if render_state.selected_entry_index == render_state.bottom_index - 1 {
-                        render_state.top_index += 1;
-                    }
-
-                    render_state.selected_entry_index += 1;
+                    render_state.select_entry(
+                        render_state.selected_entry_index + 1,
+                        render_state.y_size as usize,
+                        SCROLL_THRESHOLD_ITEMS,
+                    );
                     render_state.complete_render(&mut stdout)?;
                 }
             }
             Action::MoveUp => {
                 if render_state.selected_entry_index > 0 {
-                    if render_state.selected_entry_index == render_state.top_index {
-                        render_state.top_index -= 1;
-                    }
-
-                    render_state.selected_entry_index -= 1;
+                    render_state.select_entry(
+                        render_state.selected_entry_index - 1,
+                        render_state.y_size as usize,
+                        SCROLL_THRESHOLD_ITEMS,
+                    );
                     render_state.complete_render(&mut stdout)?;
                 }
             }
@@ -349,12 +385,11 @@ pub fn render_loop(
                         render_state.selected_entry_index - 1,
                     );
 
-                    if render_state.selected_entry_index == render_state.top_index {
-                        render_state.top_index -= 1;
-                    }
-
-                    render_state.selected_entry_index -= 1;
-
+                    render_state.select_entry(
+                        render_state.selected_entry_index - 1,
+                        render_state.y_size as usize,
+                        SCROLL_THRESHOLD_ITEMS,
+                    );
                     render_state.complete_render(&mut stdout)?;
                 }
             }
@@ -374,11 +409,11 @@ pub fn render_loop(
                         render_state.selected_entry_index + 1,
                     );
 
-                    if render_state.selected_entry_index == render_state.bottom_index - 1 {
-                        render_state.top_index += 1;
-                    }
-
-                    render_state.selected_entry_index += 1;
+                    render_state.select_entry(
+                        render_state.selected_entry_index + 1,
+                        render_state.y_size as usize,
+                        SCROLL_THRESHOLD_ITEMS,
+                    );
 
                     render_state.complete_render(&mut stdout)?;
                 }
@@ -398,58 +433,49 @@ pub fn render_loop(
                         .entry_comments
                         .remove(render_state.selected_entry_index);
 
-                    if render_state.selected_entry_index > 0 {
-                        render_state.selected_entry_index -= 1;
-                    }
-
+                    render_state.select_entry(
+                        render_state.selected_entry_index,
+                        render_state.y_size as usize,
+                        0,
+                    );
                     render_state.complete_render(&mut stdout)?;
                 }
             }
             Action::JumpDown => {
-                render_state.selected_entry_index = min(
-                    render_state.selected_entry_index + JUMP_AMOUNT,
-                    render_state.entries.len() - 1,
-                );
-
-                if render_state.selected_entry_index - render_state.top_index
-                    > SCROLL_THRESHOLD_ITEMS
-                {
-                    render_state.top_index = min(
-                        render_state.selected_entry_index - SCROLL_THRESHOLD_ITEMS,
+                render_state.select_entry(
+                    min(
+                        render_state.selected_entry_index + JUMP_AMOUNT,
                         render_state.entries.len() - 1,
-                    );
-                }
-
+                    ),
+                    render_state.y_size as usize,
+                    SCROLL_THRESHOLD_ITEMS,
+                );
                 render_state.complete_render(&mut stdout)?;
             }
             Action::JumpUp => {
-                if JUMP_AMOUNT > render_state.selected_entry_index {
-                    render_state.selected_entry_index = 0;
+                let goal = if JUMP_AMOUNT >= render_state.selected_entry_index {
+                    0
                 } else {
-                    render_state.selected_entry_index -= JUMP_AMOUNT;
-                }
+                    render_state.selected_entry_index - JUMP_AMOUNT
+                };
 
-                if render_state.selected_entry_index >= render_state.top_index
-                    || SCROLL_THRESHOLD_ITEMS >= render_state.selected_entry_index
-                {
-                    render_state.top_index = 0;
-                } else if render_state.top_index - render_state.selected_entry_index
-                    >= SCROLL_THRESHOLD_ITEMS
-                {
-                    render_state.top_index =
-                        render_state.selected_entry_index - SCROLL_THRESHOLD_ITEMS;
-                }
-
+                render_state.select_entry(
+                    goal,
+                    render_state.y_size as usize,
+                    SCROLL_THRESHOLD_ITEMS,
+                );
                 render_state.complete_render(&mut stdout)?;
             }
             Action::JumpToTop => {
-                render_state.selected_entry_index = 0;
-                render_state.top_index = 0;
+                render_state.select_entry(0, render_state.y_size as usize, SCROLL_THRESHOLD_ITEMS);
                 render_state.complete_render(&mut stdout)?;
             }
             Action::JumpToBottom => {
-                render_state.selected_entry_index = render_state.entries.len() - 1;
-                render_state.top_index = render_state.entries.len() - 1;
+                render_state.select_entry(
+                    render_state.entries.len() - 1,
+                    render_state.y_size as usize,
+                    SCROLL_THRESHOLD_ITEMS,
+                );
                 render_state.complete_render(&mut stdout)?;
             }
             Action::Exit => {
