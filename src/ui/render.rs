@@ -295,7 +295,7 @@ impl UIState {
                 .entry_comments
                 .iter()
                 .rev()
-                .skip(self.entries.len() - 1 - bottom_index_goal); // rename me
+                .skip(self.entries.len() - 1 - bottom_index_goal);
 
             let mut top_index = bottom_index_goal;
             for entry_comments in comments {

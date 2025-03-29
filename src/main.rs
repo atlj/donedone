@@ -20,8 +20,8 @@ fn main() {
         args.file_path = Some(path);
     }
 
-    let mut file_handler = EntryFileHandler::from_file_path(&args.file_path.unwrap()).unwrap(); // remove
-                                                                                                // unwrap
+    let mut file_handler = EntryFileHandler::from_file_path(&args.file_path.unwrap()).unwrap();
+
     match args.command {
         None => {
             start_gui_mode(file_handler).log_if_err();
