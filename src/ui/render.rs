@@ -22,7 +22,7 @@ pub struct UIState {
     bottom_index: usize,
     y_size: u16,
     x_size: u16,
-    previous_command: Option<Action>,
+    previous_action: Option<Action>,
 }
 
 type Renderable = Vec<StyledContent<String>>;
@@ -41,7 +41,7 @@ impl UIState {
             bottom_index: 0,
             y_size,
             x_size,
-            previous_command: None,
+            previous_action: None,
         }
     }
 
@@ -212,8 +212,10 @@ pub fn render_loop(
 
     render_state.complete_render(&mut stdout)?;
 
-    while let Ok(message) = receiver.recv() {
-        match message {
+    while let Ok(action) = receiver.recv() {
+        let mut previous_action_to_save = Some(action.clone());
+
+        match action {
             Action::MoveDown => {
                 if render_state.selected_entry_index < render_state.entries.len() - 1 {
                     if render_state.selected_entry_index == render_state.bottom_index - 1 {
@@ -278,11 +280,11 @@ pub fn render_loop(
             }
             Action::DeleteSelectedEntry => {
                 if matches!(
-                    render_state.previous_command,
+                    render_state.previous_action,
                     Some(Action::DeleteSelectedEntry)
                 ) {
                     file_handler.remove_entry(&render_state.selected_entry_index)?;
-                    render_state.previous_command = None;
+                    previous_action_to_save = None;
 
                     render_state.entries = file_handler.get_entries();
 
@@ -347,7 +349,7 @@ pub fn render_loop(
             _ => {}
         }
 
-        render_state.previous_command = Some(message.clone());
+        render_state.previous_action = previous_action_to_save;
     }
 
     stdout.execute(crossterm::terminal::LeaveAlternateScreen)?;
