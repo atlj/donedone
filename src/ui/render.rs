@@ -29,7 +29,6 @@ pub struct UIState {
 
 type Renderable = Vec<StyledContent<String>>;
 
-const JUMP_AMOUNT: usize = 5;
 const SCROLL_THRESHOLD_ITEMS: usize = 2;
 
 impl UIState {
@@ -442,9 +441,10 @@ pub fn render_loop(
                 }
             }
             Action::JumpDown => {
+                let jump_amount = (render_state.bottom_index - render_state.top_index) / 2;
                 render_state.select_entry(
                     min(
-                        render_state.selected_entry_index + JUMP_AMOUNT,
+                        render_state.selected_entry_index + jump_amount,
                         render_state.entries.len() - 1,
                     ),
                     render_state.y_size as usize,
@@ -453,10 +453,11 @@ pub fn render_loop(
                 render_state.complete_render(&mut stdout)?;
             }
             Action::JumpUp => {
-                let goal = if JUMP_AMOUNT >= render_state.selected_entry_index {
+                let jump_amount = (render_state.bottom_index - render_state.top_index) / 2;
+                let goal = if jump_amount >= render_state.selected_entry_index {
                     0
                 } else {
-                    render_state.selected_entry_index - JUMP_AMOUNT
+                    render_state.selected_entry_index - jump_amount
                 };
 
                 render_state.select_entry(
