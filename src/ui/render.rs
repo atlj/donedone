@@ -4,6 +4,7 @@ use std::{
     fs::OpenOptions,
     io::{stdout, BufRead, BufReader, BufWriter, Error, Stdout, Write},
     sync::mpsc::Receiver,
+    usize,
 };
 
 use crossterm::{
@@ -30,7 +31,6 @@ type Renderable = Vec<StyledContent<String>>;
 const AVERAGE_ENTRY_LENGTH: usize = 3;
 const JUMP_AMOUNT: usize = 5;
 const SCROLL_THRESHOLD_ITEMS: usize = 2;
-const MAXIMUM_HORIZONTAL_CHARACTERS: usize = 80;
 
 impl UIState {
     pub fn new(entries: Vec<Entry>, x_size: u16, y_size: u16) -> Self {
@@ -128,29 +128,44 @@ impl UIState {
     fn render_entry(entry: &Entry, highlight: bool, _y_size: u16, x_size: u16) -> Renderable {
         let mut result = Vec::new();
 
-        if let Some(comment) = entry.comment.clone() {
-            comment
-                .chars()
-                .collect::<Vec<_>>()
-                .chunks(x_size.into())
-                .map(|chunk| chunk.iter().collect::<String>())
-                .for_each(|row| {
-                    let mut content = row.bold();
-                    if highlight {
-                        content = content.magenta();
+        if let Some(comment) = &entry.comment {
+            let mut words = comment.split_whitespace().peekable();
+
+            let mut current_line = String::with_capacity(x_size as usize);
+
+            while let Some(word) = words.next() {
+                current_line.push_str(word);
+
+                // Check if more chars can fit in the current line
+                if let Some(next_word) = words.peek() {
+                    if next_word.len() + current_line.len() <= (x_size - 1) as usize {
+                        current_line.push_str(" ");
+                        continue;
                     }
-                    result.push(content);
-                });
+                }
+                // We reached the line's max width, yield
+
+                // If we have a single word that's larger than the x_size, we have to truncate it.
+                current_line.truncate(x_size as usize);
+
+                if highlight {
+                    result.push(current_line.clone().magenta())
+                } else {
+                    result.push(current_line.clone().stylize())
+                }
+
+                current_line.clear();
+            }
         }
 
         let current_dir = current_dir().unwrap();
-        let relative_dir = entry
+        let mut relative_dir = entry
             .path
             .strip_prefix(current_dir)
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .to_string();
+            .map(|dir| dir.to_str().unwrap_or_default().to_string())
+            .unwrap_or_default();
+
+        relative_dir.truncate(x_size as usize);
 
         let mut line = format!("{}:{}", relative_dir, entry.line)
             .to_string()
@@ -166,7 +181,7 @@ impl UIState {
             let buf_reader = BufReader::new(file_handle);
             if let Some(Ok(line)) = buf_reader.lines().nth(entry.line - 1) {
                 let mut line = line.trim().to_string();
-                line.truncate(MAXIMUM_HORIZONTAL_CHARACTERS);
+                line.truncate(x_size as usize);
                 result.push(line.italic().dark_grey());
             }
         }
