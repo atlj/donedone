@@ -1,2 +1,2 @@
 procs:
-  build: cargo watch -x build
+  build: cargo watch -x "build --release"
