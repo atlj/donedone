@@ -1,8 +1,8 @@
 use std::{
     cmp::min,
     env::current_dir,
-    fs::read_to_string,
-    io::{stdout, BufWriter, Error, Stdout, Write},
+    fs::OpenOptions,
+    io::{stdout, BufRead, BufReader, BufWriter, Error, Stdout, Write},
     sync::mpsc::Receiver,
 };
 
@@ -30,6 +30,7 @@ type Renderable = Vec<StyledContent<String>>;
 const AVERAGE_ENTRY_LENGTH: usize = 3;
 const JUMP_AMOUNT: usize = 5;
 const SCROLL_THRESHOLD_ITEMS: usize = 2;
+const MAXIMUM_HORIZONTAL_CHARACTERS: usize = 80;
 
 impl UIState {
     pub fn new(entries: Vec<Entry>, x_size: u16, y_size: u16) -> Self {
@@ -148,9 +149,12 @@ impl UIState {
 
         result.push(line);
 
-        if let Ok(file) = read_to_string(entry.path.clone()) {
-            if let Some(line) = file.lines().nth(entry.line - 1) {
-                result.push(line.trim().to_string().italic().dark_grey())
+        if let Ok(file_handle) = OpenOptions::new().read(true).open(&entry.path) {
+            let buf_reader = BufReader::new(file_handle);
+            if let Some(Ok(line)) = buf_reader.lines().nth(entry.line - 1) {
+                let mut line = line.trim().to_string();
+                line.truncate(MAXIMUM_HORIZONTAL_CHARACTERS);
+                result.push(line.italic().dark_grey());
             }
         }
 
