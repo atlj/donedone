@@ -72,6 +72,19 @@ impl UIState {
                 .queue(crossterm::style::Print(contents))?;
         }
 
+        let selected_index_indicator = self.render_selected_index();
+
+        let mut column = self.x_size - 1;
+
+        for contents in selected_index_indicator.into_iter().rev() {
+            column -= contents.content().len() as u16;
+
+            stdout
+                .queue(crossterm::cursor::MoveToColumn(column))?
+                .queue(crossterm::cursor::MoveToRow(0))?
+                .queue(crossterm::style::Print(contents))?;
+        }
+
         stdout.flush()?;
 
         Ok(())
@@ -191,6 +204,16 @@ impl UIState {
         for _ in 0..(y_size as usize - thumb_size - thumb_start_y) {
             result.push("|".to_string().stylize());
         }
+
+        result
+    }
+
+    fn render_selected_index(&self) -> Renderable {
+        let mut result: Renderable = vec![];
+
+        result.push((self.selected_entry_index + 1).to_string().magenta());
+        result.push("/".to_string().stylize());
+        result.push(self.entries.len().to_string().stylize());
 
         result
     }
