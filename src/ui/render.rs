@@ -234,7 +234,9 @@ impl UIState {
 
     fn render_selected_index(&self) -> Renderable {
         vec![
-            (self.selected_entry_index + 1).to_string().magenta(),
+            (min(self.selected_entry_index + 1, self.entries.len()))
+                .to_string()
+                .magenta(),
             "/".to_string().stylize(),
             self.entries.len().to_string().stylize(),
         ]
