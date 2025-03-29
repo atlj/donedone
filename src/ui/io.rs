@@ -55,7 +55,9 @@ impl TryInto<Action> for KeyEvent {
 
             // Etc.
             KeyCode::Char('h') => Ok(Action::SwapEntryUp),
+            KeyCode::Left => Ok(Action::SwapEntryUp),
             KeyCode::Char('l') => Ok(Action::SwapEntryDown),
+            KeyCode::Right => Ok(Action::SwapEntryDown),
             KeyCode::Char('d') => Ok(Action::DeleteSelectedEntry),
             _ => Err(()),
         }
