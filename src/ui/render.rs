@@ -93,34 +93,32 @@ impl UIState {
     fn render_entries(&mut self, y_size: u16, x_size: u16) -> Renderable {
         let mut result: Renderable = vec![];
 
-        let mut current_index = self.top_index;
-        let mut displayed_entries = 0;
-        while let Some(entry) = self.entries.get(current_index) {
-            if result.len() >= y_size.into() {
+        let mut rendered_entries =
+            self.entries
+                .iter()
+                .enumerate()
+                .skip(self.top_index)
+                .map(|(index, entry)| {
+                    Self::render_entry(entry, index == self.selected_entry_index, y_size, x_size)
+                });
+
+        let mut rendered_entry_count = 0;
+
+        while let Some(rendered_entry) = rendered_entries.next() {
+            if result.len() + rendered_entry.len() > y_size as usize {
                 break;
             }
 
-            let mut content = Self::render_entry(
-                entry,
-                current_index == self.selected_entry_index,
-                y_size,
-                x_size,
-            );
+            result.extend(rendered_entry);
 
-            if current_index != self.entries.len() - 1 {
-                content.push("\n".to_string().stylize());
+            if result.len() < y_size as usize {
+                result.push("".to_string().stylize());
             }
 
-            if result.len() + content.len() > y_size.into() {
-                break;
-            }
-
-            result.append(&mut content);
-            displayed_entries += 1;
-            current_index += 1;
+            rendered_entry_count += 1;
         }
 
-        self.bottom_index = self.top_index + displayed_entries;
+        self.bottom_index = self.top_index + rendered_entry_count;
 
         result
     }
