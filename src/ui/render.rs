@@ -46,21 +46,31 @@ impl UIState {
     }
 
     fn complete_render(&mut self, stdout: &mut BufWriter<Stdout>) -> Result<(), Error> {
-        let renderables = self.render_entries(self.y_size, self.x_size - 10);
+        // Draw Entries
+        let entry_render_x_size = self.x_size - 10;
+        let entry_render_y_size = self.y_size;
+
+        let rendered_entries = self.render_entries(entry_render_y_size, entry_render_x_size);
 
         stdout.queue(crossterm::terminal::Clear(
             crossterm::terminal::ClearType::All,
         ))?;
 
-        for (y, contents) in renderables.into_iter().enumerate() {
+        let offset_to_center_entries =
+            ((entry_render_y_size as f32 - rendered_entries.len() as f32) / 2.0).round() as usize;
+
+        for (y, contents) in rendered_entries.into_iter().enumerate() {
             assert!(y <= self.y_size.into(), "Trying to print outside of screen");
 
             stdout
                 .queue(crossterm::cursor::MoveToColumn(5))?
-                .queue(crossterm::cursor::MoveToRow(y as u16))?
+                .queue(crossterm::cursor::MoveToRow(
+                    (y + offset_to_center_entries) as u16,
+                ))?
                 .queue(crossterm::style::Print(contents))?;
         }
 
+        // Draw Scroll bar
         let scroll_bar = self.render_scroll_bar(self.y_size - 6, self.y_size);
 
         for (y, contents) in scroll_bar.into_iter().enumerate() {
@@ -72,6 +82,7 @@ impl UIState {
                 .queue(crossterm::style::Print(contents))?;
         }
 
+        // Draw Selected Index Indicator
         let selected_index_indicator = self.render_selected_index();
 
         let mut column = self.x_size - 1;
