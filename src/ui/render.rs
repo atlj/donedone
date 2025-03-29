@@ -1,5 +1,5 @@
 use std::{
-    cmp::min,
+    cmp::{max, min},
     env::current_dir,
     fs::OpenOptions,
     io::{stdout, BufRead, BufReader, BufWriter, Error, Stdout, Write},
@@ -18,6 +18,7 @@ use super::io::Action;
 
 pub struct UIState {
     entries: Vec<Entry>,
+    entry_comments: Vec<Vec<String>>,
     selected_entry_index: usize,
     top_index: usize,
     bottom_index: usize,
@@ -28,14 +29,19 @@ pub struct UIState {
 
 type Renderable = Vec<StyledContent<String>>;
 
-const AVERAGE_ENTRY_LENGTH: usize = 3;
 const JUMP_AMOUNT: usize = 5;
 const SCROLL_THRESHOLD_ITEMS: usize = 2;
 
 impl UIState {
     pub fn new(entries: Vec<Entry>, x_size: u16, y_size: u16) -> Self {
+        let entry_comments = entries
+            .iter()
+            .map(|entry| Self::split_entry_comments(entry, x_size as usize))
+            .collect();
+
         Self {
             entries,
+            entry_comments,
             selected_entry_index: 0,
             top_index: 0,
             bottom_index: 0,
@@ -43,6 +49,56 @@ impl UIState {
             x_size,
             previous_action: None,
         }
+    }
+
+    fn get_total_content_height(&self) -> usize {
+        self.entry_comments.iter().map(|comment| comment.len()).sum::<usize>() + // total comment lines
+           2 * self.entries.len() + // code + path
+           max(1,self.entries.len()) // gaps
+            - 1
+    }
+
+    fn resize(&mut self, y_size: u16, x_size: u16) {
+        self.x_size = x_size;
+        self.y_size = y_size;
+
+        self.entry_comments = self
+            .entries
+            .iter()
+            .map(|entry| Self::split_entry_comments(entry, self.x_size as usize))
+            .collect();
+    }
+
+    fn split_entry_comments(entry: &Entry, max_width: usize) -> Vec<String> {
+        let mut result = Vec::new();
+
+        if let Some(comment) = &entry.comment {
+            let mut words = comment.split_whitespace().peekable();
+
+            let mut current_line = String::with_capacity(max_width);
+
+            while let Some(word) = words.next() {
+                current_line.push_str(word);
+
+                // Check if more chars can fit in the current line
+                if let Some(next_word) = words.peek() {
+                    if next_word.len() + current_line.len() <= (max_width - 1) as usize {
+                        current_line.push_str(" ");
+                        continue;
+                    }
+                }
+                // We reached the line's max width, yield
+
+                // If we have a single word that's larger than the x_size, we have to truncate it.
+                current_line.truncate(max_width);
+
+                result.push(current_line.clone());
+
+                current_line.clear();
+            }
+        }
+
+        result
     }
 
     fn complete_render(&mut self, stdout: &mut BufWriter<Stdout>) -> Result<(), Error> {
@@ -71,7 +127,7 @@ impl UIState {
         }
 
         // Draw Scroll bar
-        let scroll_bar = self.render_scroll_bar(self.y_size - 6, self.y_size);
+        let scroll_bar = self.render_scroll_bar(self.y_size - 6);
 
         for (y, contents) in scroll_bar.into_iter().enumerate() {
             assert!(y <= self.y_size.into(), "Trying to print outside of screen");
@@ -104,14 +160,12 @@ impl UIState {
     fn render_entries(&mut self, y_size: u16, x_size: u16) -> Renderable {
         let mut result: Renderable = vec![];
 
-        let mut rendered_entries =
-            self.entries
-                .iter()
-                .enumerate()
-                .skip(self.top_index)
-                .map(|(index, entry)| {
-                    Self::render_entry(entry, index == self.selected_entry_index, y_size, x_size)
-                });
+        let mut rendered_entries = self
+            .entries
+            .iter()
+            .enumerate()
+            .skip(self.top_index)
+            .map(|(index, entry)| self.render_entry(entry, index, y_size, x_size));
 
         let mut rendered_entry_count = 0;
 
@@ -134,37 +188,26 @@ impl UIState {
         result
     }
 
-    fn render_entry(entry: &Entry, highlight: bool, _y_size: u16, x_size: u16) -> Renderable {
+    fn render_entry(
+        &self,
+        entry: &Entry,
+        entry_index: usize,
+        _y_size: u16,
+        x_size: u16,
+    ) -> Renderable {
+        let should_highlight = self.selected_entry_index == entry_index;
         let mut result = Vec::new();
 
-        if let Some(comment) = &entry.comment {
-            let mut words = comment.split_whitespace().peekable();
-
-            let mut current_line = String::with_capacity(x_size as usize);
-
-            while let Some(word) = words.next() {
-                current_line.push_str(word);
-
-                // Check if more chars can fit in the current line
-                if let Some(next_word) = words.peek() {
-                    if next_word.len() + current_line.len() <= (x_size - 1) as usize {
-                        current_line.push_str(" ");
-                        continue;
-                    }
-                }
-                // We reached the line's max width, yield
-
-                // If we have a single word that's larger than the x_size, we have to truncate it.
-                current_line.truncate(x_size as usize);
-
-                if highlight {
-                    result.push(current_line.clone().magenta())
+        if let Some(comment) = self.entry_comments.get(entry_index) {
+            let comment_to_push = comment.clone().into_iter().map(|comment| {
+                if should_highlight {
+                    comment.magenta()
                 } else {
-                    result.push(current_line.clone().stylize())
+                    comment.stylize()
                 }
+            });
 
-                current_line.clear();
-            }
+            result.extend(comment_to_push);
         }
 
         let current_dir = current_dir().unwrap();
@@ -180,7 +223,7 @@ impl UIState {
             .to_string()
             .underlined();
 
-        if highlight {
+        if should_highlight {
             line = line.magenta();
         }
 
@@ -198,17 +241,15 @@ impl UIState {
         result
     }
 
-    fn render_scroll_bar(&self, y_size: u16, entry_window_y_size: u16) -> Renderable {
+    fn render_scroll_bar(&self, y_size: u16) -> Renderable {
         let mut result: Renderable = vec![];
+        let displayed_entry_count = self.bottom_index - self.top_index;
 
-        if (self.entries.len() * AVERAGE_ENTRY_LENGTH) < (entry_window_y_size + 1).into() {
+        if displayed_entry_count == self.entries.len() {
             return result;
         }
 
-        let displayed_entries =
-            (entry_window_y_size as f32 / AVERAGE_ENTRY_LENGTH as f32).round() as usize - 1;
-
-        let thumb_size_ratio = displayed_entries as f32 / self.entries.len() as f32;
+        let thumb_size_ratio = displayed_entry_count as f32 / self.entries.len() as f32;
         let thumb_size = (thumb_size_ratio * y_size as f32).round() as usize;
 
         let thumb_start_y = min(
@@ -240,6 +281,15 @@ impl UIState {
             "/".to_string().stylize(),
             self.entries.len().to_string().stylize(),
         ]
+    }
+
+    fn select_entry(&mut self, index: usize) {
+        self.selected_entry_index = min(self.entries.len(), index);
+
+        // Make the entry visible while not having any blank space
+        // Also keep some buffer near
+        // Change the top and bottom indices accordingly
+        // But we also need to know the content sizes accordingly
     }
 }
 
@@ -294,6 +344,10 @@ pub fn render_loop(
                         render_state.selected_entry_index,
                         render_state.selected_entry_index - 1,
                     );
+                    render_state.entry_comments.swap(
+                        render_state.selected_entry_index,
+                        render_state.selected_entry_index - 1,
+                    );
 
                     if render_state.selected_entry_index == render_state.top_index {
                         render_state.top_index -= 1;
@@ -315,6 +369,10 @@ pub fn render_loop(
                         render_state.selected_entry_index,
                         render_state.selected_entry_index + 1,
                     );
+                    render_state.entry_comments.swap(
+                        render_state.selected_entry_index,
+                        render_state.selected_entry_index + 1,
+                    );
 
                     if render_state.selected_entry_index == render_state.bottom_index - 1 {
                         render_state.top_index += 1;
@@ -333,7 +391,12 @@ pub fn render_loop(
                     file_handler.remove_entry(&render_state.selected_entry_index)?;
                     previous_action_to_save = None;
 
-                    render_state.entries = file_handler.get_entries();
+                    render_state
+                        .entries
+                        .remove(render_state.selected_entry_index);
+                    render_state
+                        .entry_comments
+                        .remove(render_state.selected_entry_index);
 
                     if render_state.selected_entry_index > 0 {
                         render_state.selected_entry_index -= 1;
@@ -392,6 +455,10 @@ pub fn render_loop(
             Action::Exit => {
                 stdout.execute(crossterm::terminal::LeaveAlternateScreen)?;
                 return Ok(());
+            }
+            Action::Resize { y_size, x_size } => {
+                render_state.resize(y_size, x_size);
+                render_state.complete_render(&mut stdout)?;
             }
             _ => {}
         }
