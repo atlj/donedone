@@ -277,15 +277,9 @@ impl UIState {
     fn select_entry(&mut self, index: usize, window_height: usize, edge_threshold: usize) {
         self.selected_entry_index = min(self.entries.len() - 1, index);
 
-        // Clamp to 0
-        if edge_threshold >= self.selected_entry_index {
-            self.top_index = 0;
-            return;
-        }
-
         // Scroll up
-        if self.selected_entry_index - edge_threshold < self.top_index {
-            self.top_index = self.selected_entry_index - edge_threshold;
+        if self.selected_entry_index.saturating_sub(edge_threshold) < self.top_index {
+            self.top_index = self.selected_entry_index.saturating_sub(edge_threshold);
             return;
         }
 
@@ -451,14 +445,10 @@ pub fn render_loop(
             }
             Action::JumpUp => {
                 let jump_amount = (render_state.bottom_index - render_state.top_index) / 2;
-                let goal = if jump_amount >= render_state.selected_entry_index {
-                    0
-                } else {
-                    render_state.selected_entry_index - jump_amount
-                };
-
                 render_state.select_entry(
-                    goal,
+                    render_state
+                        .selected_entry_index
+                        .saturating_sub(jump_amount),
                     render_state.y_size as usize,
                     SCROLL_THRESHOLD_ITEMS,
                 );
