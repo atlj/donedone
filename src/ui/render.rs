@@ -4,7 +4,6 @@ use std::{
     fs::OpenOptions,
     io::{stdout, BufRead, BufReader, BufWriter, Error, Stdout, Write},
     sync::mpsc::Receiver,
-    usize,
 };
 
 use crossterm::{
@@ -74,8 +73,8 @@ impl UIState {
 
                 // Check if more chars can fit in the current line
                 if let Some(next_word) = words.peek() {
-                    if next_word.len() + current_line.len() <= (max_width - 1) as usize {
-                        current_line.push_str(" ");
+                    if next_word.len() + current_line.len() <= (max_width - 1) {
+                        current_line.push(' ');
                         continue;
                     }
                 }
@@ -152,7 +151,7 @@ impl UIState {
     fn render_entries(&mut self, y_size: u16, x_size: u16) -> Renderable {
         let mut result: Renderable = vec![];
 
-        let mut rendered_entries = self
+        let rendered_entries = self
             .entries
             .iter()
             .enumerate()
@@ -161,7 +160,7 @@ impl UIState {
 
         let mut rendered_entry_count = 0;
 
-        while let Some(rendered_entry) = rendered_entries.next() {
+        for rendered_entry in rendered_entries {
             if result.len() + rendered_entry.len() > y_size as usize {
                 break;
             }
@@ -297,15 +296,15 @@ impl UIState {
                 self.entries.len() - 1,
             );
 
-            let mut height_to_fill = window_height.clone();
-            let mut comments = self
+            let mut height_to_fill = window_height;
+            let comments = self
                 .entry_comments
                 .iter()
                 .rev()
                 .skip(self.entries.len() - 1 - bottom_index_goal); // rename me
 
             let mut top_index = bottom_index_goal;
-            while let Some(entry_comments) = comments.next() {
+            for entry_comments in comments {
                 let entry_height = entry_comments.len() // comments
                     + 2; // code and path
 
@@ -316,9 +315,7 @@ impl UIState {
                 height_to_fill -= entry_height;
 
                 // Gap
-                if height_to_fill > 0 {
-                    height_to_fill -= 1;
-                }
+                height_to_fill = height_to_fill.saturating_sub(1);
 
                 top_index -= 1;
             }
