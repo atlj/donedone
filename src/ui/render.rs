@@ -194,15 +194,15 @@ impl UIState {
         );
 
         for _ in 0..thumb_start_y {
-            result.push("|".to_string().stylize());
+            result.push("┃".to_string().stylize());
         }
 
         for _ in 0..thumb_size {
-            result.push("#".to_string().stylize());
+            result.push("▓".to_string().stylize());
         }
 
         for _ in 0..(y_size as usize - thumb_size - thumb_start_y) {
-            result.push("|".to_string().stylize());
+            result.push("┃".to_string().stylize());
         }
 
         result
