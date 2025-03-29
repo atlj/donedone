@@ -2,7 +2,7 @@ use std::{
     cmp::min,
     env::current_dir,
     fs::read_to_string,
-    io::{stdout, Error, Stdout, Write},
+    io::{stdout, BufWriter, Error, Stdout, Write},
     sync::mpsc::Receiver,
 };
 
@@ -44,7 +44,7 @@ impl UIState {
         }
     }
 
-    fn complete_render(&mut self, stdout: &mut Stdout) -> Result<(), Error> {
+    fn complete_render(&mut self, stdout: &mut BufWriter<Stdout>) -> Result<(), Error> {
         let renderables = self.render_entries(self.y_size, self.x_size - 10);
 
         stdout.queue(crossterm::terminal::Clear(
@@ -198,7 +198,7 @@ pub fn render_loop(
 ) -> Result<(), Error> {
     let (initial_x_size, initial_y_size) = crossterm::terminal::size()?;
     let mut render_state = UIState::new(file_handler.get_entries(), initial_x_size, initial_y_size);
-    let mut stdout = stdout();
+    let mut stdout = BufWriter::new(stdout());
 
     stdout
         .queue(crossterm::cursor::Hide)?
