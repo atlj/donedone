@@ -209,19 +209,17 @@ impl UIState {
     }
 
     fn render_selected_index(&self) -> Renderable {
-        let mut result: Renderable = vec![];
-
-        result.push((self.selected_entry_index + 1).to_string().magenta());
-        result.push("/".to_string().stylize());
-        result.push(self.entries.len().to_string().stylize());
-
-        result
+        vec![
+            (self.selected_entry_index + 1).to_string().magenta(),
+            "/".to_string().stylize(),
+            self.entries.len().to_string().stylize(),
+        ]
     }
 }
 
 pub fn render_loop(
     mut file_handler: EntryFileHandler,
-    receiver: Receiver<Action>,
+    io_action_receiver: Receiver<Action>,
 ) -> Result<(), Error> {
     let (initial_x_size, initial_y_size) = crossterm::terminal::size()?;
     let mut render_state = UIState::new(file_handler.get_entries(), initial_x_size, initial_y_size);
@@ -235,7 +233,7 @@ pub fn render_loop(
 
     render_state.complete_render(&mut stdout)?;
 
-    while let Ok(action) = receiver.recv() {
+    while let Ok(action) = io_action_receiver.recv() {
         let mut previous_action_to_save = Some(action.clone());
 
         match action {

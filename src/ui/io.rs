@@ -1,6 +1,42 @@
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseEvent};
+use std::{io::Error, sync::mpsc::Sender};
 
-use crate::entry::Entry;
+use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent};
+
+use crate::{entry::Entry, log::LogError};
+
+pub fn io_loop(render_loop_sender: Sender<Action>) -> Result<(), Error> {
+    crossterm::terminal::enable_raw_mode()?;
+
+    while let Ok(event) = crossterm::event::read() {
+        match event {
+            Event::Resize(x_size, y_size) => {
+                render_loop_sender
+                    .send(Action::Resize { y_size, x_size })
+                    .log_if_err();
+            }
+            Event::Mouse(mouse_event) => {
+                if let Ok(action) = mouse_event.try_into() {
+                    render_loop_sender.send(action).log_if_err();
+                }
+            }
+            Event::Key(key_event) => {
+                if let Ok(action) = key_event.try_into() {
+                    if matches!(action, Action::Exit) {
+                        break;
+                    }
+
+                    render_loop_sender.send(action).log_if_err();
+                }
+            }
+            _ => {}
+        }
+    }
+
+    render_loop_sender.send(Action::Exit).log_if_err();
+    crossterm::terminal::disable_raw_mode()?;
+
+    Ok(())
+}
 
 #[derive(Debug, Clone)]
 pub enum Action {
