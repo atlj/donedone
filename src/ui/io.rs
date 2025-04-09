@@ -1,11 +1,18 @@
-use std::{io::Error, sync::mpsc::Sender};
+use std::{
+    io::{stdout, Error},
+    sync::mpsc::Sender,
+};
 
-use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent};
+use crossterm::{
+    event::{Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent},
+    ExecutableCommand,
+};
 
 use crate::{entry::Entry, log::LogError};
 
 pub fn io_loop(render_loop_sender: Sender<Action>) -> Result<(), Error> {
     crossterm::terminal::enable_raw_mode()?;
+    stdout().execute(crossterm::event::EnableMouseCapture)?;
 
     while let Ok(event) = crossterm::event::read() {
         match event {
@@ -61,8 +68,10 @@ impl TryInto<Action> for MouseEvent {
 
     fn try_into(self) -> Result<Action, Self::Error> {
         match self.kind {
+            // Move up and down
             crossterm::event::MouseEventKind::ScrollDown => Ok(Action::MoveDown),
             crossterm::event::MouseEventKind::ScrollUp => Ok(Action::MoveUp),
+
             _ => Err(()),
         }
     }
