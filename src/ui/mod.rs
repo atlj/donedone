@@ -11,9 +11,11 @@ pub mod render;
 pub fn start_gui_mode(file_handler: EntryFileHandler) -> Result<(), Error> {
     let (sender, receiver) = channel::<Action>();
 
-    spawn(move || io_loop(sender));
+    let spawn_io_loop = move || {
+        spawn(move || io_loop(sender));
+    };
 
-    render_loop(file_handler, receiver).unwrap();
+    render_loop(file_handler, receiver, spawn_io_loop).expect("Couldn't spawn the render loop");
 
     Ok(())
 }

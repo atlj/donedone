@@ -335,6 +335,8 @@ pub fn render_loop(
 
     render_state.complete_render(&mut stdout)?;
 
+    on_initial_render();
+
     while let Ok(action) = io_action_receiver.recv() {
         let mut previous_action_to_save = Some(action.clone());
 
