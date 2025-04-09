@@ -34,7 +34,7 @@ impl UIState {
     pub fn new(entries: Vec<Entry>, x_size: u16, y_size: u16) -> Self {
         let entry_comments = entries
             .iter()
-            .map(|entry| Self::split_entry_comments(entry, x_size as usize))
+            .map(|entry| Self::split_entry_comments(entry, x_size))
             .collect();
 
         Self {
@@ -56,11 +56,12 @@ impl UIState {
         self.entry_comments = self
             .entries
             .iter()
-            .map(|entry| Self::split_entry_comments(entry, self.x_size as usize))
+            .map(|entry| Self::split_entry_comments(entry, x_size))
             .collect();
     }
 
-    fn split_entry_comments(entry: &Entry, max_width: usize) -> Vec<String> {
+    fn split_entry_comments(entry: &Entry, total_width: u16) -> Vec<String> {
+        let max_width = Self::get_entry_max_width(total_width) as usize;
         let mut result = Vec::new();
 
         if let Some(comment) = &entry.comment {
@@ -94,7 +95,7 @@ impl UIState {
 
     fn complete_render(&mut self, stdout: &mut BufWriter<Stdout>) -> Result<(), Error> {
         // Draw Entries
-        let entry_render_x_size = self.x_size - 10;
+        let entry_render_x_size = Self::get_entry_max_width(self.x_size);
         let entry_render_y_size = self.y_size;
 
         let rendered_entries = self.render_entries(entry_render_y_size, entry_render_x_size);
@@ -317,11 +318,16 @@ impl UIState {
             self.top_index = top_index + 1
         }
     }
+
+    fn get_entry_max_width(total_width: u16) -> u16 {
+        total_width - 10
+    }
 }
 
 pub fn render_loop(
     mut file_handler: EntryFileHandler,
     io_action_receiver: Receiver<Action>,
+    on_initial_render: impl FnOnce(),
 ) -> Result<(), Error> {
     let (initial_x_size, initial_y_size) = crossterm::terminal::size()?;
     let mut render_state = UIState::new(file_handler.get_entries(), initial_x_size, initial_y_size);
