@@ -368,7 +368,7 @@ pub fn render_loop(
                 }
             }
             Action::SwapEntryUp => {
-                if render_state.selected_entry_index > 0 {
+                if render_state.entries.len() > 1 && render_state.selected_entry_index > 0 {
                     file_handler.swap_entries(
                         &render_state.selected_entry_index,
                         &(render_state.selected_entry_index - 1),
@@ -392,7 +392,9 @@ pub fn render_loop(
                 }
             }
             Action::SwapEntryDown => {
-                if render_state.selected_entry_index < render_state.entries.len() - 1 {
+                if render_state.entries.len() > 1
+                    && render_state.selected_entry_index < render_state.entries.len() - 1
+                {
                     file_handler.swap_entries(
                         &render_state.selected_entry_index,
                         &(render_state.selected_entry_index + 1),
