@@ -14,7 +14,11 @@ pub struct EntryFileHandler {
 
 impl EntryFileHandler {
     pub fn from_file_path(path: &Path) -> Result<EntryFileHandler, Error> {
-        let read_handle = OpenOptions::new().read(true).open(path)?;
+        let read_handle = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .open(path)?;
 
         let reader = BufReader::new(read_handle);
 
